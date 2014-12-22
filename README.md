@@ -48,10 +48,12 @@ I wrote code to automatically get the taxonomy for most of the hosts, but there 
 
 
 Then you can generate the tsv file:
-python PhageHosts/code/phage_host_taxonomy.py  > phage_host_taxonomy.tsv.
+`python PhageHosts/code/phage_host_taxonomy.py  > phage_host_taxonomy.tsv`.
 
 I also just made two files with tuples of genome NC id and taxonomy id.
-NOTE: For the phage, the tax id is the id of the HOST not of the phage (so we can use it for scoring!!)
+
+###NOTE: For the phage, the tax id is the id of the HOST not of the phage###
+This is important to remember (and I keep forgetting) but what we actually want to compare is the known host of a phage with the predicted host of the phage, so we need a list of taxonomy IDs of the phage host and the bacteria.
 
 python PhageHosts/code/phage2taxonomy.py  > phage_host_taxid.txt
 and another file refseq2taxonomy.py which added the tax id to the list of
