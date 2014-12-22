@@ -349,54 +349,59 @@ Convert to taxa  and score as before
 ==============
 
 for codon counts:
-use PhageHosts/code/codon_usage.py to count the codons and print out tables. Then we just need to calculate the nearest neighbor by euclidean distance or some other distance measure
-python PhageHosts/code/codon_usage.py ../phage_with_host.cds.fna  > phage_codon_counts.tsv
-see the bacteria.sh in codon_usage directory for the SGE job, which calls this
-python codon_usage.py $DIR/bacteria.$SGE_TASK_ID.orfs.fna.gz > bacteria/bacteria.$SGE_TASK_ID.codons.tsv
+use `PhageHosts/code/codon_usage.py` to count the codons and print out tables. Then we just need to calculate the nearest neighbor by euclidean distance or some other distance measure
+
+    python PhageHosts/code/codon_usage.py ../phage_with_host.cds.fna  > phage_codon_counts.tsv
 
 and then count the distance using:
-python PhageHost/codon_distance.py phage_codon_counts.tsv bacteria_codon_counts.tsv  > phage_bacteria_predictions.out
-which is in codon_distance.sh
 
+    python PhageHost/codon_distance.py phage_codon_counts.tsv bacteria_codon_counts.tsv  > phage_bacteria_predictions.out
 
-convert that output to taxids:
-python PhageHosts/code/NC2taxid.py phage_bacteria_predictions.out > phage_bacteria_predictions.taxid
-
-and then score
-python2.7 PhageHosts/code/scoreTaxId.py phage_bacteria_predictions.taxid > score.txt
-
-NOTE:
-There is a strange result here. ~300 of the phages are most similar to a single genome, NC_014655
-However, I took a look at the distance between one phage at random (NC_021773) and all the genomes, and there does not appear to be anything suspicious. This is not the first or last genome, and it does seem that it the most similar to a lot of phages.
-Maybe it is a size thing? See codon_distance_one.sh.o56514 for the output of the similarity to one phage. 
-Also, that phage (NC_021773) is most similar to NC_014655 and least similar to NC_014497. One in the middle is NC_017360. I plotted these four codon usages in a graph and there still does not appear to be anything important about them!
-
-
+convert that output to taxids and then score:
+    python PhageHosts/code/NC2taxid.py phage_bacteria_predictions.out > phage_bacteria_predictions.taxid
+    python2.7 PhageHosts/code/scoreTaxId.py phage_bacteria_predictions.taxid > score.txt
 
 7. Kmer profiles
 ================
 
-for kmer-counts:
-Longest phage sequence is 358,663 bp, so we'll use a hash size of 400000
+for kmer-counts the longest phage sequence is 358,663 bp, so we'll use a hash size of 400000
 
 Initially we start with this script to list all the 3-mers. 
 
-for f in $(ls ../phage_with_host.fna.files_NC/*);
-	do n=$(echo $f | sed -e 's/\.\.\/phage_with_host.fna.files_NC\///; s/fna$/tsv/');
-	echo $f $n;
-	jellyfish count -s 400000 -t 32 -C -m 15 -o 15mers.txt $f;
-	jellyfish dump -ct 15mers.txt_0 > 15mers/$n;
-done
+    for f in $(ls ../phage_with_host.fna.files_NC/*);
+	    do n=$(echo $f | sed -e 's/\.\.\/phage_with_host.fna.files_NC\///; s/fna$/tsv/');
+	    echo $f $n;
+	    jellyfish count -s 400000 -t 32 -C -m 3 -o 3mers.txt $f;
+	    jellyfish dump -ct 3mers.txt_0 > 3mers/$n;
+    done
 
 and then we modify it to count all k-mers between 3 and 20. That is in
 count_kmers.sh and runs on a node of the cluster in a few minutes.
 
-The basic command we are going to use to count the kmers is JellyFish. So we
-use something like this:
-jellyfish count -s 400000 -t 32 -C -m 3 -o 3mers.txt ../phage_with_host.fna
-but the way we actually do it is to use the cluster and count all the kmers.
-The code count_kmers.sh will do that and count all kmers between 3 and 20 and put
-the output in a single directory for each k-mer.
+
+    #!/bin/bash
+    ## Count all kmers between 3 and 20 and put the output in a single directory
+    export PATH=$PATH:$HOME/bin
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/lib
+    
+    ## first make all the directories
+    for k in $(seq 3 20); do mkdir ${k}mers; done
+    ## loop through each file
+    for f in $(ls ../phage_with_host.fna.files/*); do 
+        n=$(echo $f | sed -e 's/\.\.\/phage_with_host.fna.files\///; s/fasta$/tsv/'); 
+        #echo $f $n; 
+        for k in $(seq 3 20); do 
+                jellyfish count -s 400000 -t 32 -C -m $k -o mers.txt $f;  
+                if [ -e mers.txt_1 ]; then
+                        jellyfish merge -o output.jf mers.txt_*
+                else
+                        mv mers.txt_0 output.jf
+                fi
+                jellyfish dump -ct output.jf  > ${k}mers/$n; 
+                rm -f mers.txt_* output.jf
+        done
+    done
+
 
 We then combine those outputs to a single file using combineKmerCounts.py.
 This takes a while so we run it on the cluster like this:
