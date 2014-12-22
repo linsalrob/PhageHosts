@@ -26,6 +26,7 @@ use `perl get_viral_dna.pl`  to split the viruses into either phage or eukaryoti
 Make a table of the heirarchy of the phage hosts. We are just going to keep these ranks: species, genus, family, order, class, phylum, superkingdom
 
 I wrote code to automatically get the taxonomy for most of the hosts, but there were a few that I couldn't map, so I added those manually. To whit:
+
 	'Acinetobacter genomosp.' : '471',
 	'Actinobacillus actinomycetemcomitans' : '714',
 	'alpha proteobacterium' : '34025',
