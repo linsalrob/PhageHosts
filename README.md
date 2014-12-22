@@ -55,17 +55,18 @@ I also just made two files with tuples of genome NC id and taxonomy id.
 ###NOTE: For the phage, the tax id is the id of the HOST not of the phage###
 This is important to remember (and I keep forgetting) but what we actually want to compare is the known host of a phage with the predicted host of the phage, so we need a list of taxonomy IDs of the phage host and the bacteria.
 
-python PhageHosts/code/phage2taxonomy.py  > phage_host_taxid.txt
-and another file refseq2taxonomy.py which added the tax id to the list of
-complete bacterial genomes, and then I made a list of bacteria and taxid:
-cut -f 2,4 /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_ids_taxid.txt | perl -pe 's/^.*\|N/N/; s/\.\d+\|//' > bacteria_taxid.txt
+`python PhageHosts/code/phage2taxonomy.py  > phage_host_taxid.txt` and another file `refseq2taxonomy.py` which added the tax id to the list of complete bacterial genomes, and then I made a list of bacteria and taxid:
+
+    cut -f 2,4 /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_ids_taxid.txt | perl -pe 's/^.*\|N/N/; s/\.\d+\|//' > bacteria_taxid.txt
 
 
 I trimmed out any phages that we can't match at the species level:
-python2.7 PhageHosts/code/comparePhageToHosts.py
+
+    python2.7 PhageHosts/code/comparePhageToHosts.py
 
 Then I combined those into a single file for all tax ids
-cat phage_taxid.txt bacteria_taxid.txt > data/all_host_taxid.txt
+
+    cat phage_taxid.txt bacteria_taxid.txt > data/all_host_taxid.txt
 
 And add the taxonomy to those files:
 phage_host_add_taxonomy.py all_host_taxid.txt > data/all_host_taxid_taxonomy.txt
