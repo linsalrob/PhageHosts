@@ -12,10 +12,34 @@ You are welcome to use this code in any way you wish, but we are not liable if i
 * check_dna.py -- check the DNA that we get from RefSeq
 * comparePhageToHosts.py -- compare phage and their hosts (not used in the end)
 * complete_bacteria.py -- identify all complete bacteria in data downloaded from RefSeq
+* genbank2flatfile.pl
+* missing_phage_blastn.py
+* phage.py
+* phage_with_specified_hosts.py
+* phage2taxonomy.py
+* phage_host_add_taxonomy.py
+* phage_host_taxonomy.py
+* plot.py
+* refseq2complete.py
+* refseq2taxonomy.py
+* score_blast.py
+* split_orfs_by_genome.py
+
 
 * split_blast_queries_edwards_blastplus.pl -- split a DNA sequence file and run blast+ on the cluster
 * tbl2protdna.py -- convert NCBI tbl format to proteins and DNA
 * translate.pl -- translate an ORF
+
+0a. Scoring code
+----------------
+This code is used to convert RefSeq NC_ ids to taxonomy ids and then to score the code
+* NC2genus_species.py -- find the genus and species for our RefSeq IDs
+* NC2taxid.py -- convert a list of RefSeq IDs to taxonomy IDs
+* scoreDistances.py -- score the distances between genomes
+* score.py -- legacy code - don't use this
+* scoreTaxId.py -- convert the taxonomy IDs into a score
+* score_taxonomy.py -- legacy code - don't use this
+
 
 1. Protein similarity
 =====================
@@ -27,32 +51,40 @@ You are welcome to use this code in any way you wish, but we are not liable if i
 * blast2tax.py -- convert blast results to taxonomy IDs
 * blast_hits.py -- get the hits out of blast files
 * blastx2genome.py -- convert blastx results (eg against NR) to genomes
+* mostBlastHits.py
+
 
 1b.  Similarity to complete genomes (blastp)
 --------------------------------------------
 
-
+See the list above, since almost all the blast code is identical
 
 2. Nucleotide Similarity (blastn)
 ==========================================
+
+* parse_blastn.py
+* tabulate_blastn.py
+Also see the list above, since almost all the blast code is identical
 
 
 3. Exact matches
 ======================================
 
+* find_exact_matches.pl
+* longest_exact2tbl.pl
+* longest_exact_match.pl
+* sort_and_join_exact_matches.pl
 
 4. CRISPR Sequences
 ===================
 
-
-
+* crispr_blast2tax.py
+* score_crispr.pl
 
 5. GC Content of Coding Region
 ===============================
 
 * cds_gc.py -- calculate the cds %GC
-
-
 
 6. Codon usage
 ==============
@@ -61,32 +93,23 @@ You are welcome to use this code in any way you wish, but we are not liable if i
 * codon_distance.py -- calculate the distance between all codon usages
 * codon_usage.py -- calcualte the codon usage
 
-
-
-
-
-7. Codon adaption index (CAI)
-=============================
-
-
-
-8. Kmer profiles
+7. Kmer profiles
 ================
 
 * combineKmerCountsBacteria.py -- combine all the kmer counts from JellyFish into a single table
 * combineKmerCounts.py -- combine all the kmer counts from JellyFish into a single table
 
-
-
-9. Frac_D and Frac_Q
-===================
-
-
-
-10. Cooccurrence analysis
+8. Cooccurrence analysis
 =========================
 
-
+* cooccurrence_all.py
+* cooccurrence_pearson.py
+* count_phage_mg_hits.py
+* extract_phage_mg_blast.py
+* focus_grep2list.pl
+* focus_parse.py
+* focus_summary.py
+* mutual_information.py
 
 
 11. Methods that we did not use
@@ -100,47 +123,10 @@ These programs were written for some additional methods, but we did not use them
 * cai.py -- calculate the codon adaptation index
 * choose_genomes_with_highly_expressed_proteins.py -- find some highly expressed proteins for the CAI
 
-
-
-
-Codon
-
-* cooccurrence_all.py
-* cooccurrence_pearson.py
-* count_phage_mg_hits.py
-* crispr_blast2tax.py
-* extract_phage_mg_blast.py
-* find_exact_matches.pl
-* focus_grep2list.pl
-* focus_parse.py
-* focus_summary.py
+11b. frac_q and frac_d
+----------------------
 * fracDQ_best.py
 * fracDQ.py
-* genbank2flatfile.pl
-* longest_exact2tbl.pl
-* longest_exact_match.pl
-* missing_phage_blastn.py
-* mostBlastHits.py
-* mutual_information.py
-* NC2genus_species.py
-* NC2taxid.py
-* parse_blastn.py
-* phage2taxonomy.py
-* phage_host_add_taxonomy.py
-* phage_host_taxonomy.py
-* phage.py
-* phage_with_specified_hosts.py
-* plot.py
-* README.md
-* refseq2complete.py
-* refseq2taxonomy.py
-* score_blast.py
-* score_crispr.pl
-* scoreDistances.py
-* score.py
-* scoreTaxId.py
-* score_taxonomy.py
-* sort_and_join_exact_matches.pl
-* split_orfs_by_genome.py
-* tabulate_blastn.py
+
+
 
