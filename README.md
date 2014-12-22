@@ -247,72 +247,69 @@ and run ont the cluster:
 3. Exact matches
 ======================================
 
-I started by finding all 15mer hits between the bacteria and the phages, and
-then combining those identical hits into longer stretches of similarity.
-Basically this two step algorithm finds all identical stretches longer than
-15bp between the phage and the bacteria. Then we assume that the integration
-site is the longest match for each phage. 
-
-We could also score all the longest matches to see what the difference is.
+I started by finding all 15mer hits between the bacteria and the phages, and then combining those identical hits into longer stretches of similarity.
+Basically this two step algorithm finds all identical stretches longer than 15bp between the phage and the bacteria. Then we assume that the integration
+site is the longest match for each phage.  We could also score all the longest matches to see what the difference is.
 
 To find all kmers:
-perl PhageHost/find_exact_matches.pl ../phage_with_host.fna '/lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna' > phage.15mers.bacteria.txt
+
+    perl PhageHost/find_exact_matches.pl ../phage_with_host.fna '/lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna' > phage.15mers.bacteria.txt
 
 and then to sort and join the matches we use
-perl PhageHosts/code/sort_and_join_exact_matches.pl phage.15mers.bacteria.txt > phage.kmers.bacteria.txt
+
+    perl PhageHosts/code/sort_and_join_exact_matches.pl phage.15mers.bacteria.txt > phage.kmers.bacteria.txt
 
 to find the longest match per phage:
-perl PhageHosts/code/longest_exact_match.pl phage.kmers.bacteria.txt > phage_best_hits.txt 
-(see longest.sh)
+
+    perl PhageHosts/code/longest_exact_match.pl phage.kmers.bacteria.txt > phage_best_hits.txt 
 
 Next we convert this to a table of ids:
-perl PhageHosts/code/longest_exact2tbl.pl  > phage_best_hits_NCIDS.txt
 
-scoring: 
-convert to a list of taxa
-python PhageHosts/code/NC2taxid.py phage_best_hits_NCIDS.txt  > phage_best_hits_taxa.txt
-score the matches
-python2.7 PhageHosts/code/scoreTaxId.py phage_best_hits_taxa.txt > score.txt
+    perl PhageHosts/code/longest_exact2tbl.pl  > phage_best_hits_NCIDS.txt
 
+scoring; as before we convert to a list of taxa and score the matches:
 
+    python PhageHosts/code/NC2taxid.py phage_best_hits_NCIDS.txt  > phage_best_hits_taxa.txt
+    python2.7 PhageHosts/code/scoreTaxId.py phage_best_hits_taxa.txt > score.txt
 
 4. CRISPR Sequences
 ===================
 
-The spacer database was downloaded from http://crispr.u-psud.fr/crispr/BLAST/Spacer/Spacerdatabase
-(into /home/db/CRISPR/crispr.u-psud.fr)
-and the phage genomes were blasted against that:
-PhageHost/split_blast_queries_edwards_blastplus.pl -f phage_with_host.fna -n 200 -d crispr.blastn -db /home/db/CRISPR/crispr.u-psud.fr/Spacerdatabase.fna -evalue 10 -outfmt '6 std qlen slen' -p blastn
+The spacer database was downloaded from the [CRISPRs WebServer](http://crispr.u-psud.fr/crispr/BLAST/Spacer/Spacerdatabase) and the phage genomes were blasted against that:
+
+    PhageHost/split_blast_queries_edwards_blastplus.pl -f phage_with_host.fna -n 200 -d crispr.blastn -db CRISPR/crispr.u-psud.fr/Spacerdatabase.fna -evalue 10 -outfmt '6 std qlen slen' -p blastn
 
 Use score_blast to convert the blast output to a list of hits:
-python PhageHosts/code/score_blast.py crispr.blastn.rob.blastn best > rob.best.hits
 
-and then crispr_blast2tax.py to convert that output to a list of tax ids:
-python PhageHosts/code/crispr_blast2tax.py rob.best.hits > rob.taxid
+    python PhageHosts/code/score_blast.py crispr.blastn.rob.blastn best > rob.best.hits
 
-and then score that:
-python2.7 PhageHosts/code/scoreTaxId.py rob.taxid  > rob.score
+and then crispr_blast2tax.py to convert that output to a list of tax ids and score them
 
-Bas decided to make his own crispr database and redo the analysis. He provided
-a series of tsv files that are NC_ ids one per phage, so I just need to score
-them:
+    python PhageHosts/code/crispr_blast2tax.py rob.best.hits > rob.taxid
+    python2.7 PhageHosts/code/scoreTaxId.py rob.taxid  > rob.score
 
-for i in *tsv; do
-	t=$(echo $i | sed -e 's/tsv/taxid.txt/'); 
-	s=$(echo $i | sed -e 's/tsv/score.txt/'); 
-	echo -e "$i\t$t\t$s";
-	python PhageHosts/code/NC2taxid.py $i > $t;
-	python2.7 PhageHosts/code/scoreTaxId.py $t > $s;
-done
+Bas decided to make his own crispr database and redo the analysis. The CRISPR database was made using [PILERCR](http://www.drive5.com/pilercr/) He provided a series of tsv files that are NC_ ids one per phage, so I just need to score them:
+
+    for i in *tsv; do
+	    t=$(echo $i | sed -e 's/tsv/taxid.txt/'); 
+	    s=$(echo $i | sed -e 's/tsv/score.txt/'); 
+	    echo -e "$i\t$t\t$s";
+	    python PhageHosts/code/NC2taxid.py $i > $t;
+	    python2.7 PhageHosts/code/scoreTaxId.py $t > $s;
+    done
+
 
 Use score_blast to convert the blast output to a list of hits:
-python PhageHosts/code/score_blast.py crispr.blastn.bas.blastn best > bas.best.hits
+
+    python PhageHosts/code/score_blast.py crispr.blastn.bas.blastn best > bas.best.hits
 
 and then crispr_blast2tax.py to convert that output to a list of tax ids:
-python PhageHosts/code/crispr_blast2tax.py bas.best.hits > bas.taxid
+
+    python PhageHosts/code/crispr_blast2tax.py bas.best.hits > bas.taxid
 
 and then score that:
-python2.7 PhageHosts/code/scoreTaxId.py bas.taxid  > bas.score
+
+    python2.7 PhageHosts/code/scoreTaxId.py bas.taxid  > bas.score
 
 
 5. GC Content of Coding Regions
@@ -321,25 +318,31 @@ python2.7 PhageHosts/code/scoreTaxId.py bas.taxid  > bas.score
 Similar to codon usage below, we just calculate the G+C/G+C+A+T content of the coding regions. This gives us a simple one dimensional matrix that we can use.
 
 To count the GC contents:
-python PhageHosts/code/cds_gc.py ../phage_with_host.cds.fna  > phage.gc.tsv
+
+    python PhageHosts/code/cds_gc.py ../phage_with_host.cds.fna  > phage.gc.tsv
 
 bacteria.sh:
-DIR=/lustre/usr/data/NCBI/RefSeq/bacteria
-python PhageHost/cds_gc.py $DIR/bacteria.$SGE_TASK_ID.orfs.fna.gz > bacteria/bacteria.$SGE_TASK_ID.gc.tsv
 
-qsub -cwd -o sge -e sge -t 1-152:1 -S /bin/bash ./bacteria.sh
+    DIR=/lustre/usr/data/NCBI/RefSeq/bacteria
+    python PhageHost/cds_gc.py $DIR/bacteria.$SGE_TASK_ID.orfs.fna.gz > bacteria/bacteria.$SGE_TASK_ID.gc.tsv
+
+and then
+
+    qsub -cwd -o sge -e sge -t 1-152:1 -S /bin/bash ./bacteria.sh
 
 
 Then pull out the complete bacteria from this list:
-python PhageHosts/code/complete_bacteria.py  > complete_bacteria_gc.tsv
+
+    python PhageHosts/code/complete_bacteria.py  > complete_bacteria_gc.tsv
 
 Now we have two files: complete_bacteria_gc.tsv  phage.gc.tsv and we can just get the closest organisms
-python PhageHosts/code/cds_distance.py phage.gc.tsv complete_bacteria_gc.tsv  > closest_genomes.ids
 
-Convert to taxa 
-python PhageHosts/code/NC2taxid.py closest_genomes.ids > closest_genomes.taxa
-and score:
-python PhageHosts/code/scoreTaxId.py closest_genomes.taxa > score.txt
+    python PhageHosts/code/cds_distance.py phage.gc.tsv complete_bacteria_gc.tsv  > closest_genomes.ids
+
+Convert to taxa  and score as before
+
+    python PhageHosts/code/NC2taxid.py closest_genomes.ids > closest_genomes.taxa
+    python PhageHosts/code/scoreTaxId.py closest_genomes.taxa > score.txt
 
 
 6. Codon usage
