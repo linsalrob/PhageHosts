@@ -11,17 +11,17 @@ Almost all of the code is written in python and should work with version 2.7. So
 
 The phage genomes were downloaded from genbank and refseq and parsed to get the information in the "host" field. 
 
-Use python PhageHost/combine_gbff_fna.py viral.1.genomic.gbff viral.1.1.genomic.fna > viral.1.cds.fna
+Use `python PhageHost/combine_gbff_fna.py viral.1.genomic.gbff viral.1.1.genomic.fna > viral.1.cds.fna`
 to convert from GBFF to FNA format for all of the open reading frames
 
 There are 1046 phages in genbank that have a host annotation:
-perl -ne '@a=split /\t/; print if ($a[2])' genbank.txt | grep YES$ | grep -i 'complete genome' | wc -l
+`perl -ne '@a=split /\t/; print if ($a[2])' genbank.txt | grep YES$ | grep -i 'complete genome' | wc -l`
 
 There are 971 phages in refseq that have a host annotation:
-PERL -ne '@a=split /\t/; print if ($a[2])' refseq.txt | grep YES$ | grep -i 'complete genome' | wc -l
+`PERL -ne '@a=split /\t/; print if ($a[2])' refseq.txt | grep YES$ | grep -i 'complete genome' | wc -l`
 
 We use the refseq phages because we are going to get the refseq genomes.
-use perl get_viral_dna.pl  to split the viruses into either phage or eukaryotic viruses. Obv we need phage for this!
+use `perl get_viral_dna.pl`  to split the viruses into either phage or eukaryotic viruses. Obv we need phage for this!
 
 Make a table of the heirarchy of the phage hosts. We are just going to keep these ranks: species, genus, family, order, class, phylum, superkingdom
 
