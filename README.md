@@ -506,6 +506,7 @@ Note also that I put a new line "Input: ...." at the beginning of the output so 
 
 
 This is focus.sh
+
     #!/bin/bash
     export LD_LIBRARY_PATH=:$HOME/lib
     export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/ python2.6/site-packages/:$HOME/bioinformatics/Modules/
