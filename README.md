@@ -11,7 +11,7 @@ Almost all of the code is written in python and should work with version 2.7. So
 
 The phage genomes were downloaded from genbank and refseq and parsed to get the information in the "host" field. 
 
-Use python ~/bioinformatics/ncbi/combine_gbff_fna.py viral.1.genomic.gbff viral.1.1.genomic.fna > viral.1.cds.fna
+Use python PhageHost/combine_gbff_fna.py viral.1.genomic.gbff viral.1.1.genomic.fna > viral.1.cds.fna
 to convert from GBFF to FNA format for all of the open reading frames
 
 There are 1046 phages in genbank that have a host annotation:
@@ -74,7 +74,8 @@ Note that in this process I deleted two phages whose hosts were not really known
 
 Get the phage coding sequences:
 for i in $(cut -f 1 phage_with_host.tsv); do grep -A 1 $i 2014_07_21/refseq/viral.1.cds.fna; done > data/phage_with_host.cds.fna
-# translate them:
+
+Translate the open reading frames:
 perl PhageHosts/code/translate.pl phage_with_host.cds.fna > data/phage_with_host.cds.faa
 
 All bacterial sequences were downloaded from refseq :
@@ -101,15 +102,10 @@ python PhageHost/tbl2protdna.py .
 
 This creates the two files, refseq_proteins.faa (with proteins) and refseq_orfs.faa (with DNA). 
 
-
-
-
-
-
 1. Similarity to known proteins (blastx)
 ========================================
 
-Part one: against the NR database:
+###Part one: against the NR database:
 blast complete phage genomes against all bacterial proteins in nr, and then
 use gi2tax to get the taxonomy id of the top hits. Check those against the
 expected hosts.
@@ -130,16 +126,13 @@ cat phage.blastx/*taxid > phage.host.blastx.taxid
 
 Now we have to convert these to taxids and score the hits:
 
-for i in all equal best; 
-	do echo $i; 
-	python PhageHosts/code/blast_hits.py phage.host.blastx.taxid $i ${i}_hits.txt; 
-	python2.7 PhageHosts/code/scoreTaxId.py ${i}_hits.txt > ${i}_hits.score;
-done
+	for i in all equal best; 
+		do echo $i; 
+		python PhageHosts/code/blast_hits.py phage.host.blastx.taxid $i ${i}_hits.txt; 
+		python2.7 PhageHosts/code/scoreTaxId.py ${i}_hits.txt > ${i}_hits.score;
+	done
 
-
-
-
-Part two: against just the complete genomes:
+###Part two: against just the complete genomes:
 Start by making a database of just the complete genomes protein sequences
 PhageHost/refseq2complete.py $HOME/phage/host_analysis/bacteria_taxid.txt  refseq_proteins.faa complete_genome_proteins.faa
 
