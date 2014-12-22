@@ -104,11 +104,11 @@ where get_prots.sh has:
 
 There are a few genomes where some of the orfs are missing for some reason, and so I checked the presence of ORFs with
 
-   python PhageHost/check_dna.py  . | sort | uniq -c  > missed-orfs.txt
+    python PhageHost/check_dna.py  . | sort | uniq -c  > missed-orfs.txt
 
 Since there are only a few genomes missing more than 1 or 2 ORFs I decided to ignore those and create fasta files of the DNA and proteins.
 
-   python PhageHost/tbl2protdna.py .
+    python PhageHost/tbl2protdna.py .
 
 This creates the two files, `refseq_proteins.faa` (with proteins) and `refseq_orfs.faa` (with DNA). 
 
@@ -116,11 +116,11 @@ This creates the two files, `refseq_proteins.faa` (with proteins) and `refseq_or
 ========================================
 
 ###Part one: against the NR database:
-blast complete phage genomes against all bacterial proteins in nr, and then
-use gi2tax to get the taxonomy id of the top hits. Check those against the
+blast complete phage genomes against all bacterial proteins in *nr*, and then
+use `gi2tax` to get the taxonomy id of the top hits. Check those against the
 expected hosts.
 
-The blast is a standard blast using blast/nr/nr as the database (i.e. all proteins).
+The blast is a standard blast using blast/nr as the database (i.e. all proteins).
 
 To add the tax id, we make a simple script:
 
@@ -129,10 +129,12 @@ To add the tax id, we make a simple script:
 	python PhageHosts/code/blast2taxid.py  phage_with_host.fna.$SGE_TASK_ID.blastx prot
 
 and then run it for all the blast output files:
-qsub -cwd -S /bin/bash -t 1-58:1 ./b2tid.sh 
+
+    qsub -cwd -S /bin/bash -t 1-58:1 ./b2tid.sh 
 
 concatenate all the output files:
-cat phage.blastx/*taxid > phage.host.blastx.taxid
+
+    cat phage.blastx/*taxid > phage.host.blastx.taxid
 
 Now we have to convert these to taxids and score the hits:
 
@@ -144,32 +146,36 @@ Now we have to convert these to taxids and score the hits:
 
 ###Part two: against just the complete genomes:
 Start by making a database of just the complete genomes protein sequences
-PhageHost/refseq2complete.py $HOME/phage/host_analysis/bacteria_taxid.txt  refseq_proteins.faa complete_genome_proteins.faa
+
+    PhageHost/refseq2complete.py $HOME/phage/host_analysis/bacteria_taxid.txt  refseq_proteins.faa complete_genome_proteins.faa
 
 and then blast those:
-PhageHost/split_blast_queries_edwards_blastplus.pl -f ../../phage_with_host.fna -n 100 -p blastx -d phage.blastx -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_proteins.faa -evalue 0.01
-cat phage.blastx/*blastx > phage.complete.blastx
+
+    PhageHost/split_blast_queries_edwards_blastplus.pl -f ../../phage_with_host.fna -n 100 -p blastx -d phage.blastx -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_proteins.faa -evalue 0.01
+    cat phage.blastx/*blastx > phage.complete.blastx
 
 NOTE: There are mutliple proteins with the same ID that come from different genomes. How to handle this? Either record a list of those genomes or repeat them multiple times.
 To remove those, I just print out unique lines in the blast output file (I had already run the blast):
-perl -ne 'print unless ($s{$_}); $s{$_}=1' phage.complete.blastx > phage.complete.unique.blastx
+
+    perl -ne 'print unless ($s{$_}); $s{$_}=1' phage.complete.blastx > phage.complete.unique.blastx
 
 and then convert so we just have NC identifiers:
-python PhageHosts/code/blastx2genome.py phage.complete.unique.blastx phage.genomes.blastx
 
-Now we just count the sequences with the most number of hits
-python PhageHosts/code/mostBlastHits.py phage.genomes.blastx > most.tax
-and score:
-python2.7 PhageHosts/code/scoreTaxId.py most.tax > score.tax
+    python PhageHosts/code/blastx2genome.py phage.complete.unique.blastx phage.genomes.blastx
+
+Now we just count the sequences with the most number of hits and score those hits
+
+    python PhageHosts/code/mostBlastHits.py phage.genomes.blastx > most.tax
+    python2.7 PhageHosts/code/scoreTaxId.py most.tax > score.tax
 
 
 1b.  Similarity to complete genomes (blastp)
 ============================================
 
-Use the protein file created above (see phage_with_host.cds.faa) and the refseq sequences
+Use the protein file created above (see `phage_with_host.cds.faa`) and the refseq sequences
 
-PhageHost/split_blast_queries_edwards_blastplus.pl -f ../../phage_with_host.fna -n 600 -p blastp -d phage.blastp -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_proteins.faa
-cat phage.blastp/*blastp > phage.complete.blastp
+    PhageHost/split_blast_queries_edwards_blastplus.pl -f ../../phage_with_host.fna -n 600 -p blastp -d phage.blastp -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_proteins.faa
+    cat phage.blastp/*blastp > phage.complete.blastp
 
 We can then use the blast code from above to summarize these hits and convert them to a score.
 
@@ -178,56 +184,62 @@ We can then use the blast code from above to summarize these hits and convert th
 ==========================================
 
 Get the NC_ ids from the complete bacteria, above:
-grep \> * > ids.txt
-perl -i -npe 's/\:/\t/;s/^(.*)\|\s+/$1\|\t/' ids.txt
+
+    grep \> * > ids.txt
+    perl -i -npe 's/\:/\t/;s/^(.*)\|\s+/$1\|\t/' ids.txt
 
 Then, I trimmed these down to complete genomes:
-egrep 'complete genome|complete sequence' ids.txt | grep -v plasmid | grep -v 'whole genome shotgun sequence' | grep -v NR_ > complete_genome_ids.txt
 
-We should use this set of genomes for the analysis.
+    egrep 'complete genome|complete sequence' ids.txt | grep -v plasmid | grep -v 'whole genome shotgun sequence' | grep -v NR_ > complete_genome_ids.txt
+
+We use this set of genomes for the analysis.
 
 
-for direct matches:
-make a blast db: makeblastdb -in bacteria.genomic.fna -dbtype nucl
-and then blast the complete phages
+for direct matches make a blast db: `makeblastdb -in bacteria.genomic.fna -dbtype nucl` and then blast the complete phages
+
 NOTE: I change the default values here to make them the similar as NCBI blast for a whole genomes, however that usually uses a word size of 28. I cut the word size to 5 so we get some shorter matches
-PhageHost/split_blast_queries_edwards_blastplus.pl -f phage_with_host.fna -n 100 -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna -d phage.blastn -p blastn -word_size 5 -evalue 10 -num_descriptions 100 -reward 1 -penalty -2 -gapopen 0 -gapextend 0 -outfmt '6 std qlen slen'
+
+    PhageHost/split_blast_queries_edwards_blastplus.pl -f phage_with_host.fna -n 100 -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna -d phage.blastn -p blastn -word_size 5 -evalue 10 -num_descriptions 100 -reward 1 -penalty -2 -gapopen 0 -gapextend 0 -outfmt '6 std qlen slen'
 
 There were a few broken blast searches (not sure why) and so a few were missed:
-python2.7 PhageHosts/code/missing_phage_blastn.py phage_host.blastn > missed.phage
+
+    python2.7 PhageHosts/code/missing_phage_blastn.py phage_host.blastn > missed.phage
+
 and then I cheated to re run these blasts:
-mkdir missed
-for i in $(cat missed.phage | sed -e 's/MISSED //'); do cp ../phage_with_host.fna.files_NC/$i.fna missed/$i; done
-cd missed
-for i in *; do PhageHost/split_blast_queries_edwards_blastplus.pl -f $i -n 1 -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna -d phage.blastn -p blastn -word_size 5 -evalue  10 -num_descriptions 100 -reward 1 -penalty -2 -gapopen 0 -gapextend 0 -outfmt '6 std qlen slen'; done
-cat phage.blastn/*blastn > missed.blastn
+
+    mkdir missed
+    for i in $(cat missed.phage | sed -e 's/MISSED //'); do cp ../phage_with_host.fna.files_NC/$i.fna missed/$i; done
+    cd missed
+    for i in *; do PhageHost/split_blast_queries_edwards_blastplus.pl -f $i -n 1 -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna -d phage.blastn -p blastn -word_size 5 -evalue  10 -num_descriptions 100 -reward 1 -penalty -2 -gapopen 0 -gapextend 0 -outfmt '6 std qlen slen'; done
+    cat phage.blastn/*blastn > missed.blastn
 
 now join those results to the other results:
-cat missed/missed.blastn >> phage_host.blastn
 
-and finally figure out the best hit for each phage:
-hits.sh:
---cut--
-export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/
-python2.7 PhageHosts/code/parse_blastn.py phage_host.blastn > phage.hits
---cut--
+    cat missed/missed.blastn >> phage_host.blastn
 
+and finally figure out the best hit for each phage using hits.sh which has:
 
-qsub -cwd -q important hits.sh
+    export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/
+    python2.7 PhageHosts/code/parse_blastn.py phage_host.blastn > phage.hits
 
-Then score
-python PhageHosts/code/NC2taxid.py phage.hits > phage.taxid
-python2.7 PhageHosts/code/scoreTaxId.py phage.taxid > blastn.score
+and which we submit to the cluster
+
+    qsub -cwd -q important hits.sh
+
+Then score as before:
+
+    python PhageHosts/code/NC2taxid.py phage.hits > phage.taxid
+    python2.7 PhageHosts/code/scoreTaxId.py phage.taxid > blastn.score
 
 BLASTN TABULATE:
-For the table we just have the total length of sequences that match divided by the length of the phage genome:
-tabulate.sh:
---cut--
-export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/
-python2.7 PhageHosts/code/tabulate_blastn.py phage_host.blastn > blastn.table.tsv
---cut--
+For the table we just have the total length of sequences that match divided by the length of the phage genome using tabulate.sh:
 
-qsub -cwd -q important tabulate.sh
+    export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/
+    python2.7 PhageHosts/code/tabulate_blastn.py phage_host.blastn > blastn.table.tsv
+
+and run ont the cluster:
+
+    qsub -cwd -q important tabulate.sh
 
 
 
