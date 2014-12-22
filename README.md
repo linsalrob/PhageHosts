@@ -579,8 +579,9 @@ and then convert to refseq ids, taxonomy ids, and score as before
 
 
 We also have the code all_coorccurence.sh to calculate all the different distance measures:
-export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/
-python PhageHost/cooccurrence_all.py focus_bacteria_predictions.tsv normalized_phage_mg_counts.tsv
+
+    export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/
+    python PhageHost/cooccurrence_all.py focus_bacteria_predictions.tsv normalized_phage_mg_counts.tsv
 
 Score all the correlations for the different distance measures
 
