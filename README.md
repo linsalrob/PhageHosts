@@ -69,42 +69,48 @@ Then I combined those into a single file for all tax ids
     cat phage_taxid.txt bacteria_taxid.txt > data/all_host_taxid.txt
 
 And add the taxonomy to those files:
-phage_host_add_taxonomy.py all_host_taxid.txt > data/all_host_taxid_taxonomy.txt
 
+    phage_host_add_taxonomy.py all_host_taxid.txt > data/all_host_taxid_taxonomy.txt
 
-Note that in this process I deleted two phages whose hosts were not really known (NC_000935) APSE-1 whose host was Endosymbiont and Zamilon virophage (NC_022990) whose host is Mont1 megavirus)
-
-
+*Note* that in this process I deleted two phages whose hosts were not really known (NC_000935) APSE-1 whose host was Endosymbiont and Zamilon virophage (NC_022990) whose host is Mont1 megavirus)
 
 Get the phage coding sequences:
-for i in $(cut -f 1 phage_with_host.tsv); do grep -A 1 $i 2014_07_21/refseq/viral.1.cds.fna; done > data/phage_with_host.cds.fna
+
+    for i in $(cut -f 1 phage_with_host.tsv); do grep -A 1 $i 2014_07_21/refseq/viral.1.cds.fna; done > data/phage_with_host.cds.fna
 
 Translate the open reading frames:
-perl PhageHosts/code/translate.pl phage_with_host.cds.fna > data/phage_with_host.cds.faa
+
+    perl PhageHosts/code/translate.pl phage_with_host.cds.fna > data/phage_with_host.cds.faa
 
 All bacterial sequences were downloaded from refseq :
-cd /lustrefs/usr/data/NCBI/RefSeq
-ncftpget ftp://ftp.ncbi.nih.gov/refseq/release/bacteria/bacteria.*.fna.gz
-gunzip them and then make a single bacterial database for blastn searches and other stuff
-cat bacteria.*fna > bacteria.genomic.fna
+
+    cd NCBI/RefSeq
+    ncftpget ftp://ftp.ncbi.nih.gov/refseq/release/bacteria/bacteria.*.fna.gz
+    gunzip them and then make a single bacterial database for blastn searches and other stuff
+    cat bacteria.*fna > bacteria.genomic.fna
 
 
 I also downloaded the gbff files and orf files from refseq, and then used those to create a tbl file with both protein and CDS sequences.
 
-qsub -cwd -o sge/ -e sge/ -S /bin/bash -t 1-152:1 ./get_prots.sh
+    qsub -cwd -o sge/ -e sge/ -S /bin/bash -t 1-152:1 ./get_prots.sh
 
 where get_prots.sh has:
-F=$(head -n $SGE_TASK_ID protein_list | tail -n 1)
-UF=$(echo $F | sed -e 's/.gz//')
-gunzip $F
-perl PhageHost/genbank2flatfile.pl $UF
-gzip $UF
 
-There are a few genomes where some of the orfs are missing for some reason (see data/missed-orfs.txt). That file was created with python PhageHost/check_dna.py  . | sort | uniq -c  > missed-orfs.txt.  Since there are only a few genomes missing more than 1 or 2 ORFs I decided to ignore those and create fasta files of the DNA and proteins.
+    F=$(head -n $SGE_TASK_ID protein_list | tail -n 1)
+    UF=$(echo $F | sed -e 's/.gz//')
+    gunzip $F
+    perl PhageHost/genbank2flatfile.pl $UF
+    gzip $UF
 
-python PhageHost/tbl2protdna.py .
+There are a few genomes where some of the orfs are missing for some reason, and so I checked the presence of ORFs with
 
-This creates the two files, refseq_proteins.faa (with proteins) and refseq_orfs.faa (with DNA). 
+   python PhageHost/check_dna.py  . | sort | uniq -c  > missed-orfs.txt
+
+Since there are only a few genomes missing more than 1 or 2 ORFs I decided to ignore those and create fasta files of the DNA and proteins.
+
+   python PhageHost/tbl2protdna.py .
+
+This creates the two files, `refseq_proteins.faa` (with proteins) and `refseq_orfs.faa` (with DNA). 
 
 1. Similarity to known proteins (blastx)
 ========================================
