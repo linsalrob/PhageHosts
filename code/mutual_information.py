@@ -99,15 +99,22 @@ with open(bacteriaF, 'r') as pin:
     for l in pin:
         p = l.strip().split("\t")
         bacteriaId = p.pop(0)
+        bacteria[bacteriaId]={}
         # remove the taxonomy
         p.pop()
         p=map(float, p)
         data = filter(notnan, p)
+        if ignoreZeros:
+            data=filter(notzero, data)
+        if len(data) == 0:
+            for i in xrange(len(p)):
+                bacteria[bacteriaId][headers[i]]=0
+            continue
+
         mean = sum(data)/len(data)
         s = stdev(data) * stdevs
         threshold = mean - s
         # sys.stderr.write("Bacteria: " + bacteriaId + " threshold " + str(threshold) + " mean=" + str(mean) + " s=" + str(s) + "\n")
-        bacteria[bacteriaId]={}
         for i in xrange(len(p)):
             if math.isnan(p[i]) or p[i] <= threshold:
                 bacteria[bacteriaId][headers[i]]=0
