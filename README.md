@@ -1,7 +1,7 @@
 PhageHosts
 ==========
 
-The code used for identification of the hosts of different phages. This is the complete code base used in Edwards, McNair, Wellington-Oguri, and Dutilh, manuscript in preparation. 
+The code used for identification of the hosts of different phages. This is the complete code base used in *Edwards, McNair, Wellington-Oguri, and Dutilh, manuscript in preparation*. 
 
 Almost all of the code is written in python and should work with version 2.7. Some parts of the code require matplotlib, numpy, and/or scipy. Some parts of the code were written in Perl 5. The code was written on CentOS 6 machines. Parts of the code include reference to running things on our cluster where we use SGE as the job scheduler. You can run those parts without the cluster, but it will probably be slower!
 
@@ -11,21 +11,32 @@ Almost all of the code is written in python and should work with version 2.7. So
 
 The phage genomes were downloaded from genbank and refseq and parsed to get the information in the "host" field. 
 
+```
 Use python ~/bioinformatics/ncbi/combine_gbff_fna.py viral.1.genomic.gbff viral.1.1.genomic.fna > viral.1.cds.fna
+```
+
 to convert from GBFF to FNA format for all of the open reading frames
 
 There are 1046 phages in genbank that have a host annotation:
+
+```
 perl -ne '@a=split /\t/; print if ($a[2])' genbank.txt | grep YES$ | grep -i 'complete genome' | wc -l
+```
 
 There are 971 phages in refseq that have a host annotation:
-PERL -ne '@a=split /\t/; print if ($a[2])' refseq.txt | grep YES$ | grep -i 'complete genome' | wc -l
+
+```
+perl -ne '@a=split /\t/; print if ($a[2])' refseq.txt | grep YES$ | grep -i 'complete genome' | wc -l
+```
 
 We use the refseq phages because we are going to get the refseq genomes.
-use perl get_viral_dna.pl  to split the viruses into either phage or eukaryotic viruses. Obv we need phage for this!
+use `perl get_viral_dna.pl`  to split the viruses into either phage or eukaryotic viruses. Obviously we need phage for this!
 
 Make a table of the heirarchy of the phage hosts. We are just going to keep these ranks: species, genus, family, order, class, phylum, superkingdom
 
-I wrote code to automatically get the taxonomy for most of the hosts, but there were a few that I couldn't map, so I added those manually. To whit:
+I wrote code to automatically get the taxonomy for most of the hosts, but there were a few that I could not map, so I added those manually. To whit:
+
+```
 	'Acinetobacter genomosp.' : '471',
 	'Actinobacillus actinomycetemcomitans' : '714',
 	'alpha proteobacterium' : '34025',
@@ -44,21 +55,28 @@ I wrote code to automatically get the taxonomy for most of the hosts, but there 
 	'Persicivirga sp.' : '859306',
 	'Salisaeta sp.' : '1392396',
 	'Sulfitobacter sp.' : '191468'
-
+```
 
 Then you can generate the tsv file:
+
+```
 python PhageHosts/code/phage_host_taxonomy.py  > phage_host_taxonomy.tsv.
+```
 
 I also just made two files with tuples of genome NC id and taxonomy id.
 NOTE: For the phage, the tax id is the id of the HOST not of the phage (so we can use it for scoring!!)
 
+```
 python PhageHosts/code/phage2taxonomy.py  > phage_host_taxid.txt
-and another file refseq2taxonomy.py which added the tax id to the list of
-complete bacterial genomes, and then I made a list of bacteria and taxid:
+```
+
+and another file refseq2taxonomy.py which added the tax id to the list of complete bacterial genomes, and then I made a list of bacteria and taxid:
+
+```
 cut -f 2,4 /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_ids_taxid.txt | perl -pe 's/^.*\|N/N/; s/\.\d+\|//' > bacteria_taxid.txt
+```
 
-
-I trimmed out any phages that we can't match at the species level:
+I trimmed out any phages that we can not match at the species level:
 python2.7 PhageHosts/code/comparePhageToHosts.py
 
 Then I combined those into a single file for all tax ids
