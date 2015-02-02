@@ -160,73 +160,71 @@ We have a few keys pieces of code for this work:
 
 
 
-1. Similarity to known proteins (blastx)
-========================================
+#1. Similarity to known proteins (blastx)
 
-Part one: against the NR database:
-blast complete phage genomes against all bacterial proteins in nr, and then
-use gi2tax to get the taxonomy id of the top hits. Check those against the
-expected hosts.
+##Comparing the phages against the complete bacterial genomes
 
-The blast is a standard blast using blast/nr/nr as the database (i.e. all proteins).
+Start by making a database of just the complete genomes protein sequences
 
-To add the tax id, we make a simple script:
+```
+PhageHost/refseq2complete.py $HOME/phage/host_analysis/bacteria_taxid.txt  refseq_proteins.faa complete_genome_proteins.faa
+```
 
-	#!/bin/bash
-	PYTHONPATH=$PYTHONPATH:$HOME/bioinformatics/Modules
-	python PhageHosts/code/blast2taxid.py  phage_with_host.fna.$SGE_TASK_ID.blastx prot
 
-and then run it for all the blast output files:
-qsub -cwd -S /bin/bash -t 1-58:1 ./b2tid.sh 
+and then blast those:
 
-concatenate all the output files:
-cat phage.blastx/*taxid > phage.host.blastx.taxid
+```
+PhageHost/split_blast_queries_edwards_blastplus.pl -f ../../phage_with_host.fna -n 100 -p blastx -d phage.blastx -db RefSeq/bacteria/complete_genome_proteins.faa -evalue 0.01
+cat phage.blastx/*blastx > phage.complete.blastx
+```
 
-Now we have to convert these to taxids and score the hits:
+*NOTE:* There are mutliple proteins with the same ID that come from different genomes, however these are identical proteins (at the amino acid level). Therefore the blastx searches all return the same results for each protein. I use this one line of Perl code to print out unique solutions from the blastx output.
 
+```
+perl -ne 'print unless ($s{$_}); $s{$_}=1' phage.complete.blastx > phage.complete.unique.blastx
+```
+
+
+We convert the output so we just have NC identifiers:
+
+```
+python PhageHosts/code/blastx2genome.py phage.complete.unique.blastx phage.genomes.blastx
+```
+
+
+Now we just count the hosts with the most number of hits to each of the phages, and score those hits
+
+```
+python PhageHosts/code/mostBlastHits.py phage.genomes.blastx > most.tax
+python2.7 PhageHosts/code/scoreTaxId.py most.tax > score.tax
+```
+
+##Comparing phages to the non-redundant (nr) database.
+
+To see what would happen, we also compared the phages to all the proteins in the non-redundant database. Without going into the results in any detail, they weren't as good as using the complete genomes because there are more proteins in the nr database and thus more confusion from the similarity searches.
+
+We used blast to compare the complete phage genomes against all bacterial proteins in the GenBank nr and then gi_taxid table of the [ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/](NCBI taxonomy FTP site) to get the taxonomy id of the top hits. We compared those hits with the expected hosts.
+
+The blast is a standard blast using nr as the database, and our output file is in blast tab separated output format (standard format with *qlen* and *slen* added to the output). We then use
+
+```
+python PhageHosts/code/blast2taxid.py  phage_with_host.fna.blastx prot > phage.host.blastx.taxid
+```
+
+to create a list of phage and host taxids. Now we have to convert these to taxids and score the hits:
+
+```
 for i in all equal best; 
 	do echo $i; 
 	python PhageHosts/code/blast_hits.py phage.host.blastx.taxid $i ${i}_hits.txt; 
 	python2.7 PhageHosts/code/scoreTaxId.py ${i}_hits.txt > ${i}_hits.score;
 done
+```
+
+This creates three files, `all_hits.score`, `equal_hits.score`, `best_hits.score`.
 
 
-
-
-Part two: against just the complete genomes:
-Start by making a database of just the complete genomes protein sequences
-PhageHost/refseq2complete.py $HOME/phage/host_analysis/bacteria_taxid.txt  refseq_proteins.faa complete_genome_proteins.faa
-
-and then blast those:
-PhageHost/split_blast_queries_edwards_blastplus.pl -f ../../phage_with_host.fna -n 100 -p blastx -d phage.blastx -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_proteins.faa -evalue 0.01
-cat phage.blastx/*blastx > phage.complete.blastx
-
-NOTE: There are mutliple proteins with the same ID that come from different genomes. How to handle this? Either record a list of those genomes or repeat them multiple times.
-To remove those, I just print out unique lines in the blast output file (I had already run the blast):
-perl -ne 'print unless ($s{$_}); $s{$_}=1' phage.complete.blastx > phage.complete.unique.blastx
-
-and then convert so we just have NC identifiers:
-python PhageHosts/code/blastx2genome.py phage.complete.unique.blastx phage.genomes.blastx
-
-Now we just count the sequences with the most number of hits
-python PhageHosts/code/mostBlastHits.py phage.genomes.blastx > most.tax
-and score:
-python2.7 PhageHosts/code/scoreTaxId.py most.tax > score.tax
-
-
-1b.  Similarity to complete genomes (blastp)
-============================================
-
-Use the protein file created above (see phage_with_host.cds.faa) and the refseq sequences
-
-PhageHost/split_blast_queries_edwards_blastplus.pl -f ../../phage_with_host.fna -n 600 -p blastp -d phage.blastp -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_proteins.faa
-cat phage.blastp/*blastp > phage.complete.blastp
-
-We can then use the blast code from above to summarize these hits and convert them to a score.
-
-
-2. Similarity to complete genomes (blastn)
-==========================================
+#2. Similarity to complete genomes (blastn)
 
 Get the NC_ ids from the complete bacteria, above:
 grep \> * > ids.txt
