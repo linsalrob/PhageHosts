@@ -63,7 +63,8 @@ python PhageHosts/code/phage_host_taxonomy.py  > phage_host_taxonomy.tsv.
 ```
 
 We also just made two files with tuples of genome NC id and taxonomy id.
-**NOTE:** *For the phage, the tax id is the id of the HOST not of the phage (so we can use it for scoring!!)*
+
+**NOTE:** *For the phage, the tax id is the id of the HOST not of the phage (so we can use it for scoring!)*
 
 ```
 python PhageHosts/code/phage2taxonomy.py  > phage_host_taxid.txt
@@ -76,14 +77,23 @@ cut -f 2,4 /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_ids_taxid.txt |
 ```
 
 I trimmed out any phages that we can not match at the species level:
+
+```
 python2.7 PhageHosts/code/comparePhageToHosts.py
+```
 
 Then I combined those into a single file for all tax ids
-cat phage_taxid.txt bacteria_taxid.txt > data/all_host_taxid.txt
+
+
+```
+cat phage_taxid.txt bacteria_taxid.txt > [data/all_host_taxid.txt](data/all_host_taxid.txt)
+```
 
 And add the taxonomy to those files:
-phage_host_add_taxonomy.py all_host_taxid.txt > data/all_host_taxid_taxonomy.txt
 
+```
+phage_host_add_taxonomy.py all_host_taxid.txt > data/all_host_taxid_taxonomy.txt
+```
 
 Note that in this process I deleted two phages whose hosts were not really known (NC_000935) APSE-1 whose host was Endosymbiont and Zamilon virophage (NC_022990) whose host is Mont1 megavirus)
 
