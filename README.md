@@ -31,9 +31,54 @@ perl -ne '@a=split /\t/; print if ($a[2])' refseq.txt | grep YES$ | grep -i 'com
 
 use `perl PhageHosts/code/get_viral_dna.pl`  to split the viruses into either phage or eukaryotic viruses. For this work we are just going to use the Phage datasets. It is left up to the reader to try some of these challenges on Eukaryotic viral data sets.
 
-Make a table of the heirarchy of the phage hosts. We are just going to keep these ranks: species, genus, family, order, class, phylum, superkingdom
+## Extracting the DNA and protein sequences
 
-We wrote code to automatically get the taxonomy for most of the hosts, but there were a few that I could not map, so I added those manually. To whit:
+To get the phage coding sequences, we pull them out of the fasta file, and then translate them
+
+```
+for i in $(cut -f 1 phage_with_host.tsv); do grep -A 1 $i 2014_07_21/refseq/viral.1.cds.fna; done > data/phage_with_host.cds.fna
+perl PhageHosts/code/translate.pl phage_with_host.cds.fna > data/phage_with_host.cds.faa
+```
+
+All bacterial sequences were downloaded from refseq :
+
+```
+ncftpget ftp://ftp.ncbi.nih.gov/refseq/release/bacteria/bacteria.*.fna.gz
+```
+
+These were extracted and a single bacterial database was made for blastn searches
+
+```
+cat bacteria.*fna > bacteria.genomic.fna
+```
+
+
+We also downloaded the gbff files and orf files from refseq, and then used those to create a tbl file with both protein and CDS sequences using a combination of Perl and shell scripts, and running on our cluster:
+
+
+```
+qsub -cwd -o sge/ -e sge/ -S /bin/bash -t 1-152:1 ./get_prots.sh
+```
+
+where get_prots.sh has:
+
+```
+F=$(head -n $SGE_TASK_ID protein_list | tail -n 1)
+UF=$(echo $F | sed -e 's/.gz//')
+gunzip $F
+perl PhageHost/genbank2flatfile.pl $UF
+gzip $UF
+```
+
+Based on this output we create two files, refseq_proteins.faa (with proteins) and refseq_orfs.faa (with DNA) from just the complete genomes.
+
+``
+python PhageHost/tbl2protdna.py .
+```
+
+#Extracting taxonomy information
+
+We wrote code to automatically get the taxonomy for most of the hosts, but there were a few that we could not map, so we added those manually. To whit:
 
 ```
 	'Acinetobacter genomosp.' : '471',
@@ -70,64 +115,46 @@ We also just made two files with tuples of genome NC id and taxonomy id.
 python PhageHosts/code/phage2taxonomy.py  > phage_host_taxid.txt
 ```
 
-and another file refseq2taxonomy.py which added the tax id to the list of complete bacterial genomes, and then I made a list of bacteria and taxid:
+and another file refseq2taxonomy.py which added the tax id to the list of complete bacterial genomes, and then we made a list of bacteria and taxid:
 
 ```
 cut -f 2,4 /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_ids_taxid.txt | perl -pe 's/^.*\|N/N/; s/\.\d+\|//' > bacteria_taxid.txt
 ```
 
-I trimmed out any phages that we can not match at the species level:
+We trimmed out any phages that we can not match at the species level:
 
 ```
 python2.7 PhageHosts/code/comparePhageToHosts.py
 ```
 
-Then I combined those into a single file for all tax ids
+Then we combined those into a single file for all tax ids
 
 
 ```
-cat phage_taxid.txt bacteria_taxid.txt > [data/all_host_taxid.txt](data/all_host_taxid.txt)
+cat phage_taxid.txt bacteria_taxid.txt > data/all_host_taxid.txt
 ```
 
 And add the taxonomy to those files:
 
 ```
-phage_host_add_taxonomy.py all_host_taxid.txt > data/all_host_taxid_taxonomy.txt
+python PhageHosts/code/phage_host_add_taxonomy.py all_host_taxid.txt > data/all_host_taxid_taxonomy.txt
 ```
 
-Note that in this process I deleted two phages whose hosts were not really known (NC_000935) APSE-1 whose host was Endosymbiont and Zamilon virophage (NC_022990) whose host is Mont1 megavirus)
+Note that in this process we deleted two phages whose hosts were not really known (NC_000935) APSE-1 whose host was Endosymbiont and Zamilon virophage (NC_022990) whose host is Mont1 megavirus)
+
+###Resulting files
+
+This resulted in one key file that we use in this work [data/all_host_taxid.txt](https://github.com/linsalrob/PhageHosts/blob/master/data/all_host_taxid.txt) which just has two columns, a RefSeq ID (which we sometimes call NC id) and a taxonomy ID. When the RefSeq ID refers to a bacterial sequence, the taxonomy ID is of the bacterium from where the sequence came. When the RefSeq ID refers to a phage sequence, the taxonomy ID is of the phage's host.
 
 
+##Scoring predictions
 
-Get the phage coding sequences:
-for i in $(cut -f 1 phage_with_host.tsv); do grep -A 1 $i 2014_07_21/refseq/viral.1.cds.fna; done > data/phage_with_host.cds.fna
-# translate them:
-perl PhageHosts/code/translate.pl phage_with_host.cds.fna > data/phage_with_host.cds.faa
+In general, we are going to print out tab separated files containing the phage ID in the first column, and the ID of any potential hosts in subsequent columns. We do not necessarily know how many columns there will be. This is a flexible format that allows us to convert those IDs to taxonomy IDs, and then use the NCBI hierarchy to move through the phylogenetic tree to score how good our matches are.
 
-All bacterial sequences were downloaded from refseq :
-cd /lustrefs/usr/data/NCBI/RefSeq
-ncftpget ftp://ftp.ncbi.nih.gov/refseq/release/bacteria/bacteria.*.fna.gz
-gunzip them and then make a single bacterial database for blastn searches and other stuff
-cat bacteria.*fna > bacteria.genomic.fna
+We have a few keys pieces of code for this work:
 
-
-I also downloaded the gbff files and orf files from refseq, and then used those to create a tbl file with both protein and CDS sequences.
-
-qsub -cwd -o sge/ -e sge/ -S /bin/bash -t 1-152:1 ./get_prots.sh
-
-where get_prots.sh has:
-F=$(head -n $SGE_TASK_ID protein_list | tail -n 1)
-UF=$(echo $F | sed -e 's/.gz//')
-gunzip $F
-perl PhageHost/genbank2flatfile.pl $UF
-gzip $UF
-
-There are a few genomes where some of the orfs are missing for some reason (see data/missed-orfs.txt). That file was created with python PhageHost/check_dna.py  . | sort | uniq -c  > missed-orfs.txt.  Since there are only a few genomes missing more than 1 or 2 ORFs I decided to ignore those and create fasta files of the DNA and proteins.
-
-python PhageHost/tbl2protdna.py .
-
-This creates the two files, refseq_proteins.faa (with proteins) and refseq_orfs.faa (with DNA). 
-
+# NC2taxid.py is python code that converts any RefSeq ID (NC_\d+) into its associated taxonomy ID based on the association above, the bacterial RefSeq IDs map to bacterial taxonomy IDs and the phage RefSeq IDs map to host taxonomy IDs.
+# scoreTaxId.py is python code that takes the a set of taxonomy IDs and scores all subsequent elements in the set against the first member of the set, using 'species', 'genus', 'family', 'order', 'class', 'phylum', 'superkingdom' taxonomic levels from NCBI.
 
 
 
