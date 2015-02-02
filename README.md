@@ -297,10 +297,10 @@ blastn searches were performed using modified parameters that should be better f
 /usr/local/blast+/bin/blastn -db pilercr1.06.output.fna -query phage_with_host.fna -out phage_with_host.fna.crispr.blastn -outfmt '6 std qlen slen' -evalue 1 -gapopen 10 -penalty -1 -gapextend 2 -word_size 7 -dust no -task blastn-short
 ```
 
-These blast searches were compared, converted to taxids, and scored:
+These blast searches were [compared](PhageHosts/code/score_blast.py score_blast.py), [converted to taxids](PhageHosts/code/crispr_blast2tax.py crispr_blast2tax.py), and [scored](PhageHosts/code/scoreTaxId.py scoreTaxId.py):
 
 ```
-python [PhageHosts/code/score_blast.py](PhageHosts/code/score_blast.py) phage_with_host.fna.crispr.blastn best > crispr.best.hits
+python PhageHosts/code/score_blast.py phage_with_host.fna.crispr.blastn best > crispr.best.hits
 python PhageHosts/code/crispr_blast2tax.py bas.best.hits > crispr.taxid
 python2.7 PhageHosts/code/scoreTaxId.py bas.taxid  > bas.score
 ```
