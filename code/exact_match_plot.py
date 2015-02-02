@@ -70,7 +70,10 @@ print("Length\t" + "\t".join(taxalevels))
 for l in lengths:
     sys.stdout.write(str(l))
     for w in taxalevels:
-        percent = 100.0 * correct[l].get(w, 0) / (correct[l].get(w, 0) + incorrect[l].get(w, 0))
+        if (correct[l].get(w, 0) + incorrect[l].get(w, 0)) == 0:
+            percent = 0
+        else:
+            percent = 100.0 * correct[l].get(w, 0) / (correct[l].get(w, 0) + incorrect[l].get(w, 0))
         sys.stdout.write("\t" + str(percent))
     sys.stdout.write("\n")
 
