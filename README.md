@@ -287,34 +287,10 @@ python2.7 ../GitHubRepository/PhageHosts/code/exact_match_plot.py phage.kmers.ba
 
 
 
-4. CRISPR Sequences
-===================
+#4. CRISPR Sequences
 
-The spacer database was downloaded from http://crispr.u-psud.fr/crispr/BLAST/Spacer/Spacerdatabase
-(into /home/db/CRISPR/crispr.u-psud.fr)
-and the phage genomes were blasted against that:
-PhageHosts/code/split_blast_queries_edwards_blastplus.pl -f phage_with_host.fna -n 200 -d crispr.blastn -db /home/db/CRISPR/crispr.u-psud.fr/Spacerdatabase.fna -evalue 10 -outfmt '6 std qlen slen' -p blastn
+Pilercr was downloaded from [drive5](http://www.drive5.com/pilercr/) and run against all complete genomes to create the database [data/pilercr1.06.output.fna](data/pilercr1.06.output.fna)
 
-Use score_blast to convert the blast output to a list of hits:
-python PhageHosts/code/score_blast.py crispr.blastn.rob.blastn best > rob.best.hits
-
-and then crispr_blast2tax.py to convert that output to a list of tax ids:
-python PhageHosts/code/crispr_blast2tax.py rob.best.hits > rob.taxid
-
-and then score that:
-python2.7 PhageHosts/code/scoreTaxId.py rob.taxid  > rob.score
-
-Bas decided to make his own crispr database and redo the analysis. He provided
-a series of tsv files that are NC_ ids one per phage, so I just need to score
-them:
-
-for i in *tsv; do
-	t=$(echo $i | sed -e 's/tsv/taxid.txt/'); 
-	s=$(echo $i | sed -e 's/tsv/score.txt/'); 
-	echo -e "$i\t$t\t$s";
-	python PhageHosts/code/NC2taxid.py $i > $t;
-	python2.7 PhageHosts/code/scoreTaxId.py $t > $s;
-done
 
 Use score_blast to convert the blast output to a list of hits:
 python PhageHosts/code/score_blast.py crispr.blastn.bas.blastn best > bas.best.hits
