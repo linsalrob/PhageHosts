@@ -203,7 +203,7 @@ python2.7 PhageHosts/code/scoreTaxId.py most.tax > score.tax
 
 To see what would happen, we also compared the phages to all the proteins in the non-redundant database. Without going into the results in any detail, they weren't as good as using the complete genomes because there are more proteins in the nr database and thus more confusion from the similarity searches.
 
-We used blast to compare the complete phage genomes against all bacterial proteins in the GenBank nr and then gi_taxid table of the [ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/](NCBI taxonomy FTP site) to get the taxonomy id of the top hits. We compared those hits with the expected hosts.
+We used blast to compare the complete phage genomes against all bacterial proteins in the GenBank nr and then gi_taxid table of the [NCBI Taxonomy Site](ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/) to get the taxonomy id of the top hits. We compared those hits with the expected hosts.
 
 The blast is a standard blast using nr as the database, and our output file is in blast tab separated output format (standard format with *qlen* and *slen* added to the output). We then use
 
