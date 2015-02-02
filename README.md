@@ -153,8 +153,8 @@ In general, we are going to print out tab separated files containing the phage I
 
 We have a few keys pieces of code for this work:
 
-# NC2taxid.py is python code that converts any RefSeq ID (NC_\d+) into its associated taxonomy ID based on the association above, the bacterial RefSeq IDs map to bacterial taxonomy IDs and the phage RefSeq IDs map to host taxonomy IDs.
-# scoreTaxId.py is python code that takes the a set of taxonomy IDs and scores all subsequent elements in the set against the first member of the set, using 'species', 'genus', 'family', 'order', 'class', 'phylum', 'superkingdom' taxonomic levels from NCBI.
+* NC2taxid.py is python code that converts any RefSeq ID (NC_\d+) into its associated taxonomy ID based on the association above, the bacterial RefSeq IDs map to bacterial taxonomy IDs and the phage RefSeq IDs map to host taxonomy IDs.
+* scoreTaxId.py is python code that takes the a set of taxonomy IDs and scores all subsequent elements in the set against the first member of the set, using 'species', 'genus', 'family', 'order', 'class', 'phylum', 'superkingdom' taxonomic levels from NCBI.
 
 
 
