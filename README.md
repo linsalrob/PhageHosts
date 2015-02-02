@@ -9,7 +9,7 @@ The data/ directory includes some of the data sets that we used. We have not upl
 
 #0. Datasets
 
-The phage genomes were downloaded from genbank and refseq and parsed to get the information in the "host" field. These data were converted to coding and protein sequences:
+The phage genomes were downloaded from genbank and RefSeq and parsed to get the information in the "host" field. These data were converted to coding and protein sequences:
 
 For example, to convert from GBFF to FNA format for all of the open reading frames:
 
@@ -23,7 +23,7 @@ There are 1046 phages in genbank that have a host annotation:
 perl -ne '@a=split /\t/; print if ($a[2])' genbank.txt | grep YES$ | grep -i 'complete genome' | wc -l
 ```
 
-There are 971 phages in refseq that have a host annotation:
+There are 971 phages in RefSeq that have a host annotation:
 
 ```
 perl -ne '@a=split /\t/; print if ($a[2])' refseq.txt | grep YES$ | grep -i 'complete genome' | wc -l
@@ -40,7 +40,7 @@ for i in $(cut -f 1 phage_with_host.tsv); do grep -A 1 $i 2014_07_21/refseq/vira
 perl PhageHosts/code/translate.pl phage_with_host.cds.fna > data/phage_with_host.cds.faa
 ```
 
-All bacterial sequences were downloaded from refseq :
+All bacterial sequences were downloaded from RefSeq :
 
 ```
 ncftpget ftp://ftp.ncbi.nih.gov/refseq/release/bacteria/bacteria.*.fna.gz
@@ -52,8 +52,23 @@ These were extracted and a single bacterial database was made for blastn searche
 cat bacteria.*fna > bacteria.genomic.fna
 ```
 
+We extract the NC_ ids from the complete bacteria, above:
 
-We also downloaded the gbff files and orf files from refseq, and then used those to create a tbl file with both protein and CDS sequences using a combination of Perl and shell scripts, and running on our cluster:
+```
+grep \> bacteria.genomic.fna > ids.txt
+perl -i -npe 's/\:/\t/;s/^(.*)\|\s+/$1\|\t/' ids.txt
+```
+
+Then trim these down to complete genomes:
+
+```
+egrep 'complete genome|complete sequence' ids.txt | grep -v plasmid | grep -v 'whole genome shotgun sequence' | grep -v NR_ > complete_genome_ids.txt
+```
+
+We edited this last file manually to ensure that we only have complete bacterial genomes.
+
+
+We also downloaded the gbff files and orf files from RefSeq, and then used those to create a tbl file with both protein and CDS sequences using a combination of Perl and shell scripts, and running on our cluster:
 
 
 ```
@@ -66,14 +81,14 @@ where get_prots.sh has:
 F=$(head -n $SGE_TASK_ID protein_list | tail -n 1)
 UF=$(echo $F | sed -e 's/.gz//')
 gunzip $F
-perl PhageHost/genbank2flatfile.pl $UF
+perl PhageHosts/code/genbank2flatfile.pl $UF
 gzip $UF
 ```
 
 Based on this output we create two files, refseq_proteins.faa (with proteins) and refseq_orfs.faa (with DNA) from just the complete genomes.
 
 ```
-python PhageHost/tbl2protdna.py .
+python PhageHosts/code/tbl2protdna.py .
 ```
 
 #Extracting taxonomy information
@@ -167,14 +182,14 @@ We have a few keys pieces of code for this work:
 Start by making a database of just the complete genomes protein sequences
 
 ```
-PhageHost/refseq2complete.py $HOME/phage/host_analysis/bacteria_taxid.txt  refseq_proteins.faa complete_genome_proteins.faa
+PhageHosts/code/refseq2complete.py $HOME/phage/host_analysis/bacteria_taxid.txt  refseq_proteins.faa complete_genome_proteins.faa
 ```
 
 
 and then blast those:
 
 ```
-PhageHost/split_blast_queries_edwards_blastplus.pl -f ../../phage_with_host.fna -n 100 -p blastx -d phage.blastx -db RefSeq/bacteria/complete_genome_proteins.faa -evalue 0.01
+PhageHosts/code/split_blast_queries_edwards_blastplus.pl -f ../../phage_with_host.fna -n 100 -p blastx -d phage.blastx -db RefSeq/bacteria/complete_genome_proteins.faa -evalue 0.01
 cat phage.blastx/*blastx > phage.complete.blastx
 ```
 
@@ -203,7 +218,7 @@ python2.7 PhageHosts/code/scoreTaxId.py most.tax > score.tax
 
 To see what would happen, we also compared the phages to all the proteins in the non-redundant database. Without going into the results in any detail, they weren't as good as using the complete genomes because there are more proteins in the nr database and thus more confusion from the similarity searches.
 
-We used blast to compare the complete phage genomes against all bacterial proteins in the GenBank nr and then gi_taxid table of the [NCBI Taxonomy Site](ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/) ([here is an alternate link](http://tinyurl.com/ncbiftp) as there is an issue linking to FTP sites from github] to get the taxonomy id of the top hits. We compared those hits with the expected hosts.
+We used blast to compare the complete phage genomes against all bacterial proteins in the GenBank nr and then gi_taxid table of the [NCBI Taxonomy Site](ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/) ([here is an alternate link](http://tinyurl.com/ncbiftp) as there is an issue linking to FTP sites from github) to get the taxonomy id of the top hits. We compared those hits with the expected hosts.
 
 The blast is a standard blast using nr as the database, and our output file is in blast tab separated output format (standard format with *qlen* and *slen* added to the output). We then use
 
@@ -226,90 +241,49 @@ This creates three files, `all_hits.score`, `equal_hits.score`, `best_hits.score
 
 #2. Similarity to complete genomes (blastn)
 
-Get the NC_ ids from the complete bacteria, above:
-grep \> * > ids.txt
-perl -i -npe 's/\:/\t/;s/^(.*)\|\s+/$1\|\t/' ids.txt
+We start with direct matches between the phages and hosts using the complete bacterial genomic DNA, first by making a database and then by using our cluster to blast the phages against the database. *Note:* We change the default values here to make them the similar as NCBI blast for a whole genomes, however that usually uses a word size of 28. I cut the word size to 5 so we get some shorter matches. Alternate parameters will affect the results!
 
-Then, I trimmed these down to complete genomes:
-egrep 'complete genome|complete sequence' ids.txt | grep -v plasmid | grep -v 'whole genome shotgun sequence' | grep -v NR_ > complete_genome_ids.txt
-
-We should use this set of genomes for the analysis.
-
-
-for direct matches:
+```
 make a blast db: makeblastdb -in bacteria.genomic.fna -dbtype nucl
-and then blast the complete phages
-NOTE: I change the default values here to make them the similar as NCBI blast for a whole genomes, however that usually uses a word size of 28. I cut the word size to 5 so we get some shorter matches
-PhageHost/split_blast_queries_edwards_blastplus.pl -f phage_with_host.fna -n 100 -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna -d phage.blastn -p blastn -word_size 5 -evalue 10 -num_descriptions 100 -reward 1 -penalty -2 -gapopen 0 -gapextend 0 -outfmt '6 std qlen slen'
+PhageHosts/code/split_blast_queries_edwards_blastplus.pl -f phage_with_host.fna -n 100 -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna -d phage.blastn -p blastn -word_size 5 -evalue 10 -num_descriptions 100 -reward 1 -penalty -2 -gapopen 0 -gapextend 0 -outfmt '6 std qlen slen'
+cat phage.blastn/*blastn >> phage_host.blastn
+```
 
-There were a few broken blast searches (not sure why) and so a few were missed:
-python2.7 PhageHosts/code/missing_phage_blastn.py phage_host.blastn > missed.phage
-and then I cheated to re run these blasts:
-mkdir missed
-for i in $(cat missed.phage | sed -e 's/MISSED //'); do cp ../phage_with_host.fna.files_NC/$i.fna missed/$i; done
-cd missed
-for i in *; do PhageHost/split_blast_queries_edwards_blastplus.pl -f $i -n 1 -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna -d phage.blastn -p blastn -word_size 5 -evalue  10 -num_descriptions 100 -reward 1 -penalty -2 -gapopen 0 -gapextend 0 -outfmt '6 std qlen slen'; done
-cat phage.blastn/*blastn > missed.blastn
+We then figure out the best hit for each phage, and score those hits.
 
-now join those results to the other results:
-cat missed/missed.blastn >> phage_host.blastn
-
-and finally figure out the best hit for each phage:
-hits.sh:
---cut--
-export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/
+```
 python2.7 PhageHosts/code/parse_blastn.py phage_host.blastn > phage.hits
---cut--
-
-
-qsub -cwd -q important hits.sh
-
-Then score
 python PhageHosts/code/NC2taxid.py phage.hits > phage.taxid
 python2.7 PhageHosts/code/scoreTaxId.py phage.taxid > blastn.score
+```
 
-BLASTN TABULATE:
-For the table we just have the total length of sequences that match divided by the length of the phage genome:
-tabulate.sh:
---cut--
-export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/
-python2.7 PhageHosts/code/tabulate_blastn.py phage_host.blastn > blastn.table.tsv
---cut--
+#3. Exact matches
 
-qsub -cwd -q important tabulate.sh
+To identify the longest exact matches between the phage and bacteria we took a two step approach. This is easier to code than the complete solution, and although it takes slightly longer to run, the runtime is not an important concern in this analysis. 
 
+We start by finding all 15mer hits between the bacteria and the phages, and compiling those in order of their location. We then combine those identical hits into longer stretches of similarity, because consecutive, overlapping, hits must have come from two longer matching sequences.
 
+To find all 15-mers in common between the phage and bacteria, sort and join the matches, and list all the hits we use
 
-
-3. Exact matches
-======================================
-
-I started by finding all 15mer hits between the bacteria and the phages, and
-then combining those identical hits into longer stretches of similarity.
-Basically this two step algorithm finds all identical stretches longer than
-15bp between the phage and the bacteria. Then we assume that the integration
-site is the longest match for each phage. 
-
-We could also score all the longest matches to see what the difference is.
-
-To find all kmers:
-perl PhageHost/find_exact_matches.pl ../phage_with_host.fna '/lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna' > phage.15mers.bacteria.txt
-
-and then to sort and join the matches we use
+```
+perl PhageHosts/code/find_exact_matches.pl ../phage_with_host.fna RefSeq/bacteria/complete_genomes.fna > phage.15mers.bacteria.txt
 perl PhageHosts/code/sort_and_join_exact_matches.pl phage.15mers.bacteria.txt > phage.kmers.bacteria.txt
-
-to find the longest match per phage:
 perl PhageHosts/code/longest_exact_match.pl phage.kmers.bacteria.txt > phage_best_hits.txt 
-(see longest.sh)
+```
 
-Next we convert this to a table of ids:
+to find the longest match per phage, tabulate the RefSeq IDs, and score the matches we use:
+
+```
 perl PhageHosts/code/longest_exact2tbl.pl  > phage_best_hits_NCIDS.txt
-
-scoring: 
-convert to a list of taxa
 python PhageHosts/code/NC2taxid.py phage_best_hits_NCIDS.txt  > phage_best_hits_taxa.txt
-score the matches
 python2.7 PhageHosts/code/scoreTaxId.py phage_best_hits_taxa.txt > score.txt
+```
+
+To create the supplementary figure, we used 
+
+```
+python2.7 ../GitHubRepository/PhageHosts/code/exact_match_plot.py phage.kmers.bacteria.txt  > phage_kmers.counts
+```
 
 
 
@@ -319,7 +293,7 @@ python2.7 PhageHosts/code/scoreTaxId.py phage_best_hits_taxa.txt > score.txt
 The spacer database was downloaded from http://crispr.u-psud.fr/crispr/BLAST/Spacer/Spacerdatabase
 (into /home/db/CRISPR/crispr.u-psud.fr)
 and the phage genomes were blasted against that:
-PhageHost/split_blast_queries_edwards_blastplus.pl -f phage_with_host.fna -n 200 -d crispr.blastn -db /home/db/CRISPR/crispr.u-psud.fr/Spacerdatabase.fna -evalue 10 -outfmt '6 std qlen slen' -p blastn
+PhageHosts/code/split_blast_queries_edwards_blastplus.pl -f phage_with_host.fna -n 200 -d crispr.blastn -db /home/db/CRISPR/crispr.u-psud.fr/Spacerdatabase.fna -evalue 10 -outfmt '6 std qlen slen' -p blastn
 
 Use score_blast to convert the blast output to a list of hits:
 python PhageHosts/code/score_blast.py crispr.blastn.rob.blastn best > rob.best.hits
@@ -362,7 +336,7 @@ python PhageHosts/code/cds_gc.py ../phage_with_host.cds.fna  > phage.gc.tsv
 
 bacteria.sh:
 DIR=/lustre/usr/data/NCBI/RefSeq/bacteria
-python PhageHost/cds_gc.py $DIR/bacteria.$SGE_TASK_ID.orfs.fna.gz > bacteria/bacteria.$SGE_TASK_ID.gc.tsv
+python PhageHosts/code/cds_gc.py $DIR/bacteria.$SGE_TASK_ID.orfs.fna.gz > bacteria/bacteria.$SGE_TASK_ID.gc.tsv
 
 qsub -cwd -o sge -e sge -t 1-152:1 -S /bin/bash ./bacteria.sh
 
@@ -389,7 +363,7 @@ see the bacteria.sh in codon_usage directory for the SGE job, which calls this
 python codon_usage.py $DIR/bacteria.$SGE_TASK_ID.orfs.fna.gz > bacteria/bacteria.$SGE_TASK_ID.codons.tsv
 
 and then count the distance using:
-python PhageHost/codon_distance.py phage_codon_counts.tsv bacteria_codon_counts.tsv  > phage_bacteria_predictions.out
+python PhageHosts/code/codon_distance.py phage_codon_counts.tsv bacteria_codon_counts.tsv  > phage_bacteria_predictions.out
 which is in codon_distance.sh
 
 
@@ -460,7 +434,7 @@ qsub -S /bin/bash -o sge_out -e sge_error -cwd -t 1-165:1 ./count_bacterial_kmer
 This generates a single tsv file for every genome that we are going to use in
 the analysis.
 
-I have PhageHost/combineKmerCountsBacteria.py working to combine kmer counts
+I have PhageHosts/code/combineKmerCountsBacteria.py working to combine kmer counts
 for all complete bacteria, based on this list above. 
 
 
@@ -621,7 +595,7 @@ Calculate the pearson correlation between genomes and phages:
 
 use pearson.sh to create the occurence
 
-python PhageHost/scoreDistances.py pearson_correlations.tsv max > pearson.ncids 
+python PhageHosts/code/scoreDistances.py pearson_correlations.tsv max > pearson.ncids 
 python PhageHosts/code/NC2taxid.py pearson.ncids > pearson.tids
 python2.7 PhageHosts/code/scoreTaxId.py pearson.tids > pearson.score
 
@@ -630,7 +604,7 @@ use all_coorccurence.sh to calculate all the different distance measures:
 
 Score all the correlations:
 NOTE: these are all distance measures
-for i in euclidean braycurtis cityblock hamming jaccard; do python PhageHost/scoreDistances.py ${i}_correlations.tsv min > ${i}_correlations.ncids; python PhageHosts/code/NC2taxid.py ${i}_correlations.ncids > ${i}_correlations.tids; python2.7 PhageHosts/code/scoreTaxId.py ${i}_correlations.tids > ${i}_correlations.score; done
+for i in euclidean braycurtis cityblock hamming jaccard; do python PhageHosts/code/scoreDistances.py ${i}_correlations.tsv min > ${i}_correlations.ncids; python PhageHosts/code/NC2taxid.py ${i}_correlations.ncids > ${i}_correlations.tids; python2.7 PhageHosts/code/scoreTaxId.py ${i}_correlations.tids > ${i}_correlations.score; done
 
 
 
@@ -649,7 +623,7 @@ distributions of fraction in which the phage occurs and the fraction in which
 the bacterium occurs. Then simply calculate the Kullback entropy of the joint
 distribution relative to the product distribution.
 
-python2.7 PhageHost/mutual_information.py normalized_phage_mg_counts_scaled.tsv focus_bacteria_predictions.tsv 0 > mi.mean.ncids
+python2.7 PhageHosts/code/mutual_information.py normalized_phage_mg_counts_scaled.tsv focus_bacteria_predictions.tsv 0 > mi.mean.ncids
 python PhageHosts/code/NC2taxid.py mi.mean.ncids > mi.mean.tids
 python2.7 PhageHosts/code/scoreTaxId.py mi.mean.tids > mi.mean.score
 
