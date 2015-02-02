@@ -289,17 +289,21 @@ python2.7 ../GitHubRepository/PhageHosts/code/exact_match_plot.py phage.kmers.ba
 
 #4. CRISPR Sequences
 
-Pilercr was downloaded from [drive5](http://www.drive5.com/pilercr/) and run against all complete genomes to create the database [data/pilercr1.06.output.fna](data/pilercr1.06.output.fna)
+Pilercr was downloaded from [drive5](http://www.drive5.com/pilercr/) and run against all complete genomes to create the database [data/pilercr1.06.output.fna](data/pilercr1.06.output.fna). 
 
+blastn searches were performed using modified parameters that should be better for short matches:
 
-Use score_blast to convert the blast output to a list of hits:
-python PhageHosts/code/score_blast.py crispr.blastn.bas.blastn best > bas.best.hits
+```
+/usr/local/blast+/bin/blastn -db pilercr1.06.output.fna -query phage_with_host.fna -out phage_with_host.fna.crispr.blastn -outfmt '6 std qlen slen' -evalue 1 -gapopen 10 -penalty -1 -gapextend 2 -word_size 7 -dust no -task blastn-short
+```
 
-and then crispr_blast2tax.py to convert that output to a list of tax ids:
-python PhageHosts/code/crispr_blast2tax.py bas.best.hits > bas.taxid
+These blast searches were compared, converted to taxids, and scored:
 
-and then score that:
+```
+python [PhageHosts/code/score_blast.py](PhageHosts/code/score_blast.py) phage_with_host.fna.crispr.blastn best > crispr.best.hits
+python PhageHosts/code/crispr_blast2tax.py bas.best.hits > crispr.taxid
 python2.7 PhageHosts/code/scoreTaxId.py bas.taxid  > bas.score
+```
 
 
 5. GC Content of Coding Regions
