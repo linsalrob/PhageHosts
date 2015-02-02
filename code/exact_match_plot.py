@@ -45,9 +45,20 @@ for l in lengths:
     correct[l]={}
     incorrect[l]={}
 
+allscores={}
 for m in matches:
+    if m not in allscores:
+        allscores[m]={}
     for n in matches[m]:
-        scores = scoringO.score_NC(m, n)
+        if n not in allscores:
+            allscores[n]={}
+        if n in allscores[m]:
+            scores = allscores[m][n]
+        else:
+            scores = scoringO.score_NC(m, n)
+            allscores[m][n] = allscores[n][m] = scores
+
+            
         l=matches[m][n]
         for w in scores:
             if scores[w]:
@@ -58,7 +69,7 @@ for m in matches:
 print("Length\t" + "\t".join(taxalevels))
 for l in lengths:
     sys.stdout.write(str(l))
-    for w in taxlevels:
+    for w in taxalevels:
         percent = 100.0 * correct[l].get(w, 0) / (correct[l].get(w, 0) + incorrect[l].get(w, 0))
         sys.stdout.write("\t" + str(percent))
     sys.stdout.write("\n")
