@@ -72,7 +72,7 @@ gzip $UF
 
 Based on this output we create two files, refseq_proteins.faa (with proteins) and refseq_orfs.faa (with DNA) from just the complete genomes.
 
-``
+```
 python PhageHost/tbl2protdna.py .
 ```
 
