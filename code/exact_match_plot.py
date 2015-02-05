@@ -23,9 +23,9 @@ with open(f, 'r') as fin:
             continue
 
         p[4] = int(p[4])
-        lengths.add(p[4])
         if p[4] > 100:
             p[4] = 100
+        lengths.add(p[4])
         if m[0] not in matches:
             matches[m[0]]={}
         if m[1] in matches[m[0]]:
