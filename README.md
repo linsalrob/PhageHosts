@@ -246,7 +246,7 @@ We start with direct matches between the phages and hosts using the complete bac
 ```
 make a blast db: makeblastdb -in bacteria.genomic.fna -dbtype nucl
 PhageHosts/code/split_blast_queries_edwards_blastplus.pl -f phage_with_host.fna -n 100 -db /lustre/usr/data/NCBI/RefSeq/bacteria/complete_genomes.fna -d phage.blastn -p blastn -word_size 5 -evalue 10 -num_descriptions 100 -reward 1 -penalty -2 -gapopen 0 -gapextend 0 -outfmt '6 std qlen slen'
-cat phage.blastn/*blastn >> phage_host.blastn
+cat phage.blastn/blastn >> phage_host.blastn
 ```
 
 We then figure out the best hit for each phage, and score those hits.
@@ -306,141 +306,129 @@ python2.7 PhageHosts/code/scoreTaxId.py bas.taxid  > bas.score
 ```
 
 
-5. GC Content of Coding Regions
-===============================
+#5. GC Content of Coding Regions
 
-Similar to codon usage below, we just calculate the G+C/G+C+A+T content of the coding regions. This gives us a simple one dimensional matrix that we can use.
+Similar to codon usage below, we calculate the G+C/G+C+A+T content of the coding regions. This gives us a simple one dimensional matrix that we can use to map phages to hosts.
 
-To count the GC contents:
+To count the GC content:
+
+```
 python PhageHosts/code/cds_gc.py ../phage_with_host.cds.fna  > phage.gc.tsv
+```
 
-bacteria.sh:
-DIR=/lustre/usr/data/NCBI/RefSeq/bacteria
-python PhageHosts/code/cds_gc.py $DIR/bacteria.$SGE_TASK_ID.orfs.fna.gz > bacteria/bacteria.$SGE_TASK_ID.gc.tsv
+To count the bacterial GC content and limit that to complete bacterial sequences we used:
 
-qsub -cwd -o sge -e sge -t 1-152:1 -S /bin/bash ./bacteria.sh
-
-
-Then pull out the complete bacteria from this list:
+```
+python PhageHosts/code/cds_gc.py NCBI/RefSeq/bacteria/bacteria.$SGE_TASK_ID.orfs.fna.gz > bacteria/bacteria.$SGE_TASK_ID.gc.tsv
 python PhageHosts/code/complete_bacteria.py  > complete_bacteria_gc.tsv
+```
 
-Now we have two files: complete_bacteria_gc.tsv  phage.gc.tsv and we can just get the closest organisms
+Now we have two files: `complete_bacteria_gc.tsv` and `phage.gc.tsv` and we use pairwise [Euclidean distance](http://en.wikipedia.org/wiki/Euclidean_distance) to find the closest organisms, convert them to taxa, and score the results.
+
+```
 python PhageHosts/code/cds_distance.py phage.gc.tsv complete_bacteria_gc.tsv  > closest_genomes.ids
-
-Convert to taxa 
 python PhageHosts/code/NC2taxid.py closest_genomes.ids > closest_genomes.taxa
-and score:
 python PhageHosts/code/scoreTaxId.py closest_genomes.taxa > score.txt
+```
 
 
-6. Codon usage
-==============
+#6. Codon usage
 
-for codon counts:
-use PhageHosts/code/codon_usage.py to count the codons and print out tables. Then we just need to calculate the nearest neighbor by euclidean distance or some other distance measure
+We count the codon profiles in both host and bacteria, and then calculate the [Euclidean distance](http://en.wikipedia.org/wiki/Euclidean_distance) using [codon_distance.py](code/codon_distance.py) to identify the closest host for each phage:
+
+```
 python PhageHosts/code/codon_usage.py ../phage_with_host.cds.fna  > phage_codon_counts.tsv
-see the bacteria.sh in codon_usage directory for the SGE job, which calls this
 python codon_usage.py $DIR/bacteria.$SGE_TASK_ID.orfs.fna.gz > bacteria/bacteria.$SGE_TASK_ID.codons.tsv
-
-and then count the distance using:
 python PhageHosts/code/codon_distance.py phage_codon_counts.tsv bacteria_codon_counts.tsv  > phage_bacteria_predictions.out
-which is in codon_distance.sh
+```
 
 
-convert that output to taxids:
+convert that output to taxonomy IDs and score the output:
+
+```
 python PhageHosts/code/NC2taxid.py phage_bacteria_predictions.out > phage_bacteria_predictions.taxid
-
-and then score
 python2.7 PhageHosts/code/scoreTaxId.py phage_bacteria_predictions.taxid > score.txt
-
-NOTE:
-There is a strange result here. ~300 of the phages are most similar to a single genome, NC_014655
-However, I took a look at the distance between one phage at random (NC_021773) and all the genomes, and there does not appear to be anything suspicious. This is not the first or last genome, and it does seem that it the most similar to a lot of phages.
-Maybe it is a size thing? See codon_distance_one.sh.o56514 for the output of the similarity to one phage. 
-Also, that phage (NC_021773) is most similar to NC_014655 and least similar to NC_014497. One in the middle is NC_017360. I plotted these four codon usages in a graph and there still does not appear to be anything important about them!
+```
 
 
+#7. Kmer profiles
 
-7. Kmer profiles
-================
+We used [Jellyfish](http://www.genome.umd.edu/jellyfish.html) to count *k-*mers in the DNA sequences. The longest phage sequence is 358,663 bp, so we used a hash size of 400,000 to keep the whole thing (or most of it) in memory.
 
-for kmer-counts:
-Longest phage sequence is 358,663 bp, so we'll use a hash size of 400000
+Initially we started with this script to list all the 15-mers:
 
-Initially we start with this script to list all the 3-mers. 
-
-for f in $(ls ../phage_with_host.fna.files_NC/*);
+```
+for f in $(ls ../phage_with_host.fna.files_NC/);
 	do n=$(echo $f | sed -e 's/\.\.\/phage_with_host.fna.files_NC\///; s/fna$/tsv/');
 	echo $f $n;
 	jellyfish count -s 400000 -t 32 -C -m 15 -o 15mers.txt $f;
 	jellyfish dump -ct 15mers.txt_0 > 15mers/$n;
 done
+```
 
-and then we modify it to count all k-mers between 3 and 20. That is in
-count_kmers.sh and runs on a node of the cluster in a few minutes.
+and then we modify it to count all k-mers between 3 and 20. That runs on a node of the cluster in a few minutes.
 
-The basic command we are going to use to count the kmers is JellyFish. So we
-use something like this:
-jellyfish count -s 400000 -t 32 -C -m 3 -o 3mers.txt ../phage_with_host.fna
-but the way we actually do it is to use the cluster and count all the kmers.
-The code count_kmers.sh will do that and count all kmers between 3 and 20 and put
-the output in a single directory for each k-mer.
 
-We then combine those outputs to a single file using combineKmerCounts.py.
-This takes a while so we run it on the cluster like this:
+We then combine those outputs to a single file using [combineKmerCounts.py](code/combineKmerCounts.py):
 
-qsub -q important -cwd -t 3-20:1 ./combineKmerCounts.sh
+```
+python2.7 PhageHosts/code/combineKmerCounts.py phage_kmer_counts/15mers 15mers.txt 0
+```
 
 That makes a single .txt file for each kmer size.
 
-Next, we need to combine those into a PCA plot to see how the different kmers
-look. We can do that, but first we are going to transpose the matrix and then
-add an additional row (which should have been done in combineKmerCounts.sh).
-The row assigns the groups to the organisms based on genus and species names.
+To count all bacterial kmers we need to extract the fasta sequences to individual files and run jellyfish on all of those. The combination of bash and perl does that:
+
+```
+BACTGZ=$ENV{GENOME}
+BACT=$(echo $BACTGZ | sed -e 's/.gz//')
+
+if [ ! -e kmers ]; then mkdir kmers/; fi
+if [ ! -e sequences ]; then mkdir sequences/; fi
+
+mkdir sequences/
+./split.pl $BACTGZ sequences/
+
+mkdir kmers/
+for FILE in $(ls sequences/); do
+        for k in $(seq 3 10); do 
+                jellyfish count -s 400000 -t 32 -C -m $k -o kmers/$FILE.${k}kmer sequences/$FILE
+                if [ -e kmers/$FILE.${k}kmer_1 ]; then
+                        jellyfish merge -o kmers/$FILE.${k}kmer.output.jf kmers/$FILE.${k}kmer_*
+                else
+                        mv kmers/$FILE.${k}kmer_0 kmers/$FILE.${k}kmer.output.jf
+                fi
+                jellyfish dump -ct kmers/$FILE.${k}kmer.output.jf > kmers/$FILE.${k}kmer.tsv
+                rm -f kmers/$FILE.${k}kmer_*  kmers/$FILE.${k}kmer.output.jf 
+        done
+done
+```
 
 
 
-next, we can plot the PCA for each of these. NOTE: You need to do this on rambox because we don't have scikit-learn on anthill. Grr.
+This generates a single tsv file for every genome that we are going to use in the analysis.
 
-mkdir ../../../../public_html/mers
-for i in $(seq 3 8); do python plot.py ${i}mersTO.txt ../../../../public_html/mers/${i}mers.png; done
+Finally, we just make sure we only include genomes that we are interested in for our analysis.
 
-To count all bacterial kmers we need to extract the fasta sequences to
-individual files and run jellyfish on all of those. The combination of bash
-and perl does that:
-
-qsub -S /bin/bash -o sge_out -e sge_error -cwd -t 1-165:1 ./count_bacterial_kmers.sh
-
-This generates a single tsv file for every genome that we are going to use in
-the analysis.
-
-I have PhageHosts/code/combineKmerCountsBacteria.py working to combine kmer counts
-for all complete bacteria, based on this list above. 
-
-
-
-Move kmer counts into individual directories for 3 .. 20 mers and remove empty
-directories:
-
-for i in $(seq 1 20); do mkdir -p kmers/$i; done
-for i in $(seq 1 20); do mv complete_genome_kmers/*.${i}kmer.tsv kmers/$i/; done
-rmdir complete_genome_kmers/
-rmdir kmers/*
-
-Finally, I just make sure we only include genomes that we are interested in
-for our analysis.
-
+```
 for i in $(ls all_phages); do echo $i; python trim.py all_phages/$i all_phages_trimmed/$i; done
 for i in $(seq 3 9); do python trim.py bacterial_genomes/kmers/$i.kmers bacterial_kmers/$i.kmers; done
-
-The results are in:
-bacterial_kmers and phage_kmers
+```
 
 
-8. Cooccurrence analysis
-=========================
 
-We use FOCUS (Silva et al from Rob's lab) to predict the hosts in the metagenomes, but we need to make unique FOCUS databases first:
+
+
+#8. Cooccurrence analysis
+
+
+We need to predict the presence of bacteria and phage in all of the metagenomes that we have downloaded. We have 3,205 metagenomes that we have downloaded from [MG-RAST](http://metagenomics.anl.gov/), however we want to only use our complete set of phages and/or bacteria to do the predictions, and not the random set of organisms that are present in MG-RAST.
+
+##Predicting bacterial presence
+
+We start with [FOCUS](http://edwards.sdsu.edu/FOCUS/), but we need to make our unique databases first. Download the FOCUS code, and make the databases like this. The final FOCUS command makes the bacterial database.
+
+```
 cp -r ~/bin/focus/bin focus_bacteria
 cd focus_bacteria/db/
 mv k6 k6_old
@@ -450,29 +438,18 @@ head -n 1 k6_old > k6
 head -n 1 k7_old > k7
 head -n 1 k8_old > k8
 cd ../..
-grep \> NCBI/RefSeq/bacteria/complete_genomes.fna.files.NC/*  > complete_genomes_files.txt
+grep -r \> NCBI/RefSeq/bacteria/complete_genomes.fna.files.NC/  > complete_genomes_files.txt
 perl PhageHosts/code/focus_grep2list.pl < complete_genomes_files.txt  > complete_genomes_files.focus.txt
-
-then make a shell script to run focus. Don't forget to set LD_LIBRARY and PYTHONPATH:
-env | grep LD_L > fdb.sh
-env | grep PYTHONP >> fdb.sh
-echo "python2.7 focus_bacteria/focus.py -d complete_genomes_files.focus.txt" >> fdb.sh
-
-then run that on the queue
-chmod +x fdb.sh
-qsub -cwd -q important ./fdb.sh
+python2.7 focus_bacteria/focus.py -d complete_genomes_files.focus.txt
+```
 
 Now we can run all the bacterial genomes using focus. This script makes a directory for each job, cd's there, copies the data, runs focus, and then cleans up.
-Note also that I put a new line "Input: ...." at the beginning of the output so I know which job was with which sample
-
 
 This is focus.sh
---cut--
+```
 #!/bin/bash
 
 export LD_LIBRARY_PATH=:$HOME/lib
-export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/
-export PATH=$PATH:$HOME/bin
 GZFILE=$(head -n  $SGE_TASK_ID mg-rast.txt | tail -n 1)
 mkdir /scratch/$SGE_TASK_ID
 cd /scratch/$SGE_TASK_ID
@@ -481,132 +458,54 @@ echo "Input: " $GZFILE  > cooccurence/focus_NC/$SGE_TASK_ID.focus
 python2.7 focus.py -m 0 -q $SGE_TASK_ID.fasta >> cooccurence/focus_NC/$SGE_TASK_ID.focus
 cd $HOME/phage/host_analysis/cooccurence
 rm -rf /scratch/$SGE_TASK_ID
---cut--
-Note there are 3025 files in mg-rast.txt
-qsub  -cwd -S /bin/bash -t 1-3025:1 -o sge -e sge ./focus.sh 
+```
 
-I did a similar one for the phages:
-cp -r ~/bin/focus/bin focus_phage
-cd focus_phage/db/
-mv k6 k6_old
-mv k7 k7_old
-mv k8 k8_old
-head -n 1 k6_old > k6
-head -n 1 k7_old > k7
-head -n 1 k8_old > k8
-cd ../..
-grep \> ../phage_with_host.fna.files/* > phage_files.txt
-perl PhageHosts/code/focus_grep2list.pl < phage_files.txt > phage_files.focus.txt
+Since there are 3025 files in mg-rast.txt, we use qsub to run this command `qsub  -cwd -S /bin/bash -t 1-3025:1 -o sge -e sge ./focus.sh`
 
-env | grep LD_L > fdbp.sh
-env | grep PYTHONP >> fdbp.sh
-echo "python2.7 focus_phage/focus.py -d phage_files.focus.txt" >> fdbp.sh
-qsub -cwd -q important ./fdbp.sh
+This takes just a few hours to predict all the bacteria present in all the metagenomes that have been produced, and once the computation is complete, we combine them into a single file with the bacterial predictions normalized to the lengths of the metagenomes: `python ~/bioinformatics/phage_host/focus_parse.py focus_NC2 > focus_bacteria_predictions.tsv`
 
-This is focus_phage.sh
----cut---
-#!/bin/bash
+##Predicting phage sequences
 
-export LD_LIBRARY_PATH=:$HOME/lib
-export PYTHONPATH=:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/:/usr/local/opencv/lib/python2.6/site-packages/:$HOME/bioinformatics/Modules/
-export PATH=$PATH:$HOME/bin
-GZFILE=$(head -n  $SGE_TASK_ID mg-rast.txt | tail -n 1)
-mkdir /scratch/p$SGE_TASK_ID
-cd /scratch/p$SGE_TASK_ID
-gunzip -c $GZFILE > $SGE_TASK_ID.fasta
-echo "Input: " $GZFILE  > $HOME/phage/host_analysis/cooccurence/focus_phage_results/$SGE_TASK_ID.focus
-python2.7 $HOME/phage/host_analysis/cooccurence/focus_phage/focus.py -m 0 -q $SGE_TASK_ID.fasta >> $HOME/phage/host_analysis/cooccurence/focus_phage_results/$SGE_TASK_ID.focus
-cd $HOME/phage/host_analysis/cooccurence
-rm -rf /scratch/p$SGE_TASK_ID
----cut---
+We have already run megablast for all phages against all metagenomes for another project, and so we just use this as our input.
 
-mkdir focus_phage_results
-qsub -cwd -o sge -e sge -t 1-3025:1 ./focus_phage.sh
+The code below makes two tables called `raw_phage_mg_counts.tsv` and `normalized_phage_mg_counts.tsv` listing the presence of phages in each of the metagenomes. The first is just the number of times that phage is seen in each metagenome, and the second is the number divided by the number of reads in the metagenome. It is the normalized number we use (longer metagenomes have more hits, after all).
 
-NOTE: 
-Focus only reports on the top 1% of genomes, and so some of the genomes were not included in the output. I therefore redid this with the option -m 0 (included above) which sets the minimum percent to 0 and thus prints out all organisms.
-
-
-
-To convert these to a matrix, use 
-python PhageHosts/code/focus_parse.py focus_NC2 > focus_bacteria_predictions.tsv
-python PhageHosts/code/focus_parse.py focus_phage_results2 > focus_phage_predictions.tsv
-
-note: I check the dimensions of this file with:
-perl -ne'@a=split /\t/; print "$#a\n"' focus_bacteria_predictions.tsv | sort | uniq -c
-perl -ne'@a=split /\t/; print "$#a\n"' focus_phage_predictions.tsv | sort | uniq -c
-
-To print a few summary statistics about the results:
-python PhageHosts/code/focus_summary.py focus_bacteria_predictions.tsv
-python PhageHosts/code/focus_summary.py focus_phage_predictions.tsv
-
-
-
-## Comparing to BLAST
-Kate has already run megablast for all phages against all metagenomes. I start by checking that she included all phage genomes we need
-Her output is in phage_hits/out_blastn
-
-mkdir blast
-cd blast
-cut -f 1 ../../phage_with_host.tsv  > phage_ids.txt
-mkdir blast_results
-python PhageHosts/code/extract_phage_mg_blast.py phage_hits/out_blastn phage_ids.txt blast_results 2> blast_check.err
-
-Note: I did this a couple of times as we added genomes that we had missed.
-
-Finally: python PhageHosts/code/extract_phage_mg_blast.py interim_blast_results/ phage_ids.txt blast_results/ 2> missed
-
-
-Once the blast is complete we can count the hits:
+```
 python2.7 PhageHosts/code/count_phage_mg_hits.py 2> err
-
-This makes two tables with an additional column, the taxonomy of the phage, which Karoline Faust wanted me to include.
-The tables are raw_phage_mg_counts.tsv and normalized_phage_mg_counts.tsv. The first is just the number of times that phage is seen in each metagenome, and the second is the number divided by the number of reads in the metagenome. It is the normalized number we need (longer metagenomes have more hits, after all). 
-
-Note, there are still ~21 phages with no blast hits. I don't know if that is
-because these have not been run, or what is happening.
-
-MAKING THE CALCULATIONS
-We have two files:
-normalized_phage_mg_counts.tsv and focus_bacteria_predictions.tsv that we need to compare. Note that focus_bacteria_predictions.tsv is in percentages, and phage_hits is the fraction of the metagenome that matches that phage
+```
 
 
-Calculate the pearson correlation between genomes and phages:
+Our computations produce two files, `normalized_phage_mg_counts.tsv` and `focus_bacteria_predictions.tsv` that we need to compare. To do so, we calculate Pearson's correlation between genomes and phages, convert those to taxonomy IDs and then score them.
 
-use pearson.sh to create the occurence
-
+```
 python PhageHosts/code/scoreDistances.py pearson_correlations.tsv max > pearson.ncids 
 python PhageHosts/code/NC2taxid.py pearson.ncids > pearson.tids
 python2.7 PhageHosts/code/scoreTaxId.py pearson.tids > pearson.score
+```
 
 
-use all_coorccurence.sh to calculate all the different distance measures:
+We have also developed code to compare the scores using Euclidean distance, Bray Curtis distance, City Block distance, Hamming distance, and Jaccard distance, and we can run those sequentially, performing the calculations, computing the taxonomy IDs and scoring the results.
 
-Score all the correlations:
-NOTE: these are all distance measures
-for i in euclidean braycurtis cityblock hamming jaccard; do python PhageHosts/code/scoreDistances.py ${i}_correlations.tsv min > ${i}_correlations.ncids; python PhageHosts/code/NC2taxid.py ${i}_correlations.ncids > ${i}_correlations.tids; python2.7 PhageHosts/code/scoreTaxId.py ${i}_correlations.tids > ${i}_correlations.score; done
+```
+for i in euclidean braycurtis cityblock hamming jaccard; 
+	do python PhageHosts/code/scoreDistances.py ${i}_correlations.tsv min > ${i}_correlations.ncids;
+	python PhageHosts/code/NC2taxid.py ${i}_correlations.ncids > ${i}_correlations.tids;
+	python2.7 PhageHosts/code/scoreTaxId.py ${i}_correlations.tids > ${i}_correlations.score;
+done
+```
 
 
+##Mutual Information
 
-Mutual Information
+This is based on discussions with Peter Salamon, who said:
 
-Based on an idea by Peter Salamon:
+"You need a threshold of present in the metagenome to turn your current variables into 0,1 variables that signal presence of the entity in the metagenome. As a start, you could threshold on mean value for that entity (phage or bacterium). Then you need the fraction of metagenomes in which the phage and the bacterium co-occur, the fraction with one not the other and the fraction with the other and not the one and the fraction with neither. This gives the joint distribution of the four cases. You also need the marginal distributions of fraction in which the phage occurs and the fraction in which the bacterium occurs. Then simply calculate the Kullback entropy of the joint distribution relative to the product distribution."
 
-You need a threshold of present in the metagenome to turn your current
-variables into 0,1 variables that signal presence of the entity in the
-metagenome. As a start, you could threshold on mean value for that entity
-(phage or bacterium). Then you need the fraction of metagenomes in which the
-phage and the bacterium co-occur, the fraction with one not the other and the
-fraction with the other and not the one and the fraction with neither. This
-gives the joint distribution of the four cases. You also need the marginal
-distributions of fraction in which the phage occurs and the fraction in which
-the bacterium occurs. Then simply calculate the Kullback entropy of the joint
-distribution relative to the product distribution.
-
+```
 python2.7 PhageHosts/code/mutual_information.py normalized_phage_mg_counts_scaled.tsv focus_bacteria_predictions.tsv 0 > mi.mean.ncids
 python PhageHosts/code/NC2taxid.py mi.mean.ncids > mi.mean.tids
 python2.7 PhageHosts/code/scoreTaxId.py mi.mean.tids > mi.mean.score
-
+```
 
 
 
