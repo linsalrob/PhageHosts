@@ -66,7 +66,8 @@ for m in matches:
             else:
                 incorrect[l][w] = incorrect[l].get(w, 0)+1
 
-print("Length\t" + "\t".join(taxalevels))
+print("Length\t" + "\t\t\t".join(taxalevels))
+print("\t"  + ("\t".join(["Correct", "Incorrect", "", ""])) * len(taxalevels)) 
 for l in lengths:
     sys.stdout.write(str(l))
     for w in taxalevels:
@@ -74,7 +75,8 @@ for l in lengths:
             percent = 0
         else:
             percent = 100.0 * correct[l].get(w, 0) / (correct[l].get(w, 0) + incorrect[l].get(w, 0))
-        sys.stdout.write("\t" + str(percent))
+        #sys.stdout.write("\t" + str(percent))
+        sys.stdout.write("\t" + str(correct[l].get(w, 0)) + "\t" + str(incorrect[l].get(w, 0)) + "\t")
     sys.stdout.write("\n")
 
 
