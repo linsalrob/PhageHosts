@@ -31,6 +31,7 @@ perl -ne '@a=split /\t/; print if ($a[2])' refseq.txt | grep YES$ | grep -i 'com
 
 use `perl PhageHosts/code/get_viral_dna.pl`  to split the viruses into either phage or eukaryotic viruses. For this work we are just going to use the Phage datasets. It is left up to the reader to try some of these challenges on Eukaryotic viral data sets.
 
+
 ## Extracting the DNA and protein sequences
 
 To get the phage coding sequences, we pull them out of the fasta file, and then translate them
@@ -175,9 +176,9 @@ We have a few keys pieces of code for this work:
 
 
 
-#1. Similarity to known proteins (blastx)
+#1. Genetic Homology
 
-##Comparing the phages against the complete bacterial genomes
+##Comparing the phages against the complete bacterial genomes (blastx)
 
 Start by making a database of just the complete genomes protein sequences
 
@@ -239,7 +240,7 @@ done
 This creates three files, `all_hits.score`, `equal_hits.score`, `best_hits.score`.
 
 
-#2. Similarity to complete genomes (blastn)
+## Similarity to complete genomes (blastn)
 
 We start with direct matches between the phages and hosts using the complete bacterial genomic DNA, first by making a database and then by using our cluster to blast the phages against the database. *Note:* We change the default values here to make them the similar as NCBI blast for a whole genomes, however that usually uses a word size of 28. I cut the word size to 5 so we get some shorter matches. Alternate parameters will affect the results!
 
@@ -256,6 +257,25 @@ python2.7 PhageHosts/code/parse_blastn.py phage_host.blastn > phage.hits
 python PhageHosts/code/NC2taxid.py phage.hits > phage.taxid
 python2.7 PhageHosts/code/scoreTaxId.py phage.taxid > blastn.score
 ```
+
+#2. CRISPR spacers. CRISPR spacers
+
+Pilercr was downloaded from [drive5](http://www.drive5.com/pilercr/) and run against all complete genomes to create the database [data/pilercr1.06.output.fna](data/pilercr1.06.output.fna). 
+
+blastn searches were performed using modified parameters that should be better for short matches:
+
+```
+/usr/local/blast+/bin/blastn -db pilercr1.06.output.fna -query phage_with_host.fna -out phage_with_host.fna.crispr.blastn -outfmt '6 std qlen slen' -evalue 1 -gapopen 10 -penalty -1 -gapextend 2 -word_size 7 -dust no -task blastn-short
+```
+
+These blast searches were [compared](PhageHosts/code/score_blast.py score_blast.py), [converted to taxids](PhageHosts/code/crispr_blast2tax.py crispr_blast2tax.py), and [scored](PhageHosts/code/scoreTaxId.py scoreTaxId.py):
+
+```
+python PhageHosts/code/score_blast.py phage_with_host.fna.crispr.blastn best > crispr.best.hits
+python PhageHosts/code/crispr_blast2tax.py bas.best.hits > crispr.taxid
+python2.7 PhageHosts/code/scoreTaxId.py bas.taxid  > bas.score
+```
+
 
 #3. Exact matches
 
@@ -285,28 +305,9 @@ To create the supplementary figure, we used
 python2.7 ../GitHubRepository/PhageHosts/code/exact_match_plot.py phage.kmers.bacteria.txt  > phage_kmers.counts
 ```
 
+#4. Oligonucleotide profiles
 
-
-#4. CRISPR Sequences
-
-Pilercr was downloaded from [drive5](http://www.drive5.com/pilercr/) and run against all complete genomes to create the database [data/pilercr1.06.output.fna](data/pilercr1.06.output.fna). 
-
-blastn searches were performed using modified parameters that should be better for short matches:
-
-```
-/usr/local/blast+/bin/blastn -db pilercr1.06.output.fna -query phage_with_host.fna -out phage_with_host.fna.crispr.blastn -outfmt '6 std qlen slen' -evalue 1 -gapopen 10 -penalty -1 -gapextend 2 -word_size 7 -dust no -task blastn-short
-```
-
-These blast searches were [compared](PhageHosts/code/score_blast.py score_blast.py), [converted to taxids](PhageHosts/code/crispr_blast2tax.py crispr_blast2tax.py), and [scored](PhageHosts/code/scoreTaxId.py scoreTaxId.py):
-
-```
-python PhageHosts/code/score_blast.py phage_with_host.fna.crispr.blastn best > crispr.best.hits
-python PhageHosts/code/crispr_blast2tax.py bas.best.hits > crispr.taxid
-python2.7 PhageHosts/code/scoreTaxId.py bas.taxid  > bas.score
-```
-
-
-#5. GC Content of Coding Regions
+## GC Content of Coding Regions
 
 Similar to codon usage below, we calculate the G+C/G+C+A+T content of the coding regions. This gives us a simple one dimensional matrix that we can use to map phages to hosts.
 
@@ -332,7 +333,7 @@ python PhageHosts/code/scoreTaxId.py closest_genomes.taxa > score.txt
 ```
 
 
-#6. Codon usage
+## Codon usage
 
 We count the codon profiles in both host and bacteria, and then calculate the [Euclidean distance](http://en.wikipedia.org/wiki/Euclidean_distance) using [codon_distance.py](code/codon_distance.py) to identify the closest host for each phage:
 
@@ -351,7 +352,7 @@ python2.7 PhageHosts/code/scoreTaxId.py phage_bacteria_predictions.taxid > score
 ```
 
 
-#7. Kmer profiles
+## Kmer profiles
 
 We used [Jellyfish](http://www.genome.umd.edu/jellyfish.html) to count *k-*mers in the DNA sequences. The longest phage sequence is 358,663 bp, so we used a hash size of 400,000 to keep the whole thing (or most of it) in memory.
 
@@ -415,11 +416,7 @@ for i in $(ls all_phages); do echo $i; python trim.py all_phages/$i all_phages_t
 for i in $(seq 3 9); do python trim.py bacterial_genomes/kmers/$i.kmers bacterial_kmers/$i.kmers; done
 ```
 
-
-
-
-
-#8. Cooccurrence analysis
+#5. Cooccurrence analysis
 
 
 We need to predict the presence of bacteria and phage in all of the metagenomes that we have downloaded. We have 3,205 metagenomes that we have downloaded from [MG-RAST](http://metagenomics.anl.gov/), however we want to only use our complete set of phages and/or bacteria to do the predictions, and not the random set of organisms that are present in MG-RAST.
