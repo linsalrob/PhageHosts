@@ -283,11 +283,13 @@ To identify the longest exact matches between the phage and bacteria we took a t
 
 We start by finding all 15mer hits between the bacteria and the phages, and compiling those in order of their location. We then combine those identical hits into longer stretches of similarity, because consecutive, overlapping, hits must have come from two longer matching sequences.
 
-To find all 15-mers in common between the phage and bacteria, sort and join the matches, and list all the hits we use
+To find all 15-mers in common between the phage and bacteria, sort and join the matches, and list all the hits we use the following code. Note that we need to find the matches in both the forward and reverse direction, and then combine those matches.
 
 ```
 perl PhageHosts/code/find_exact_matches.pl ../phage_with_host.fna RefSeq/bacteria/complete_genomes.fna > phage.15mers.bacteria.txt
+perl PhageHosts/code/find_exact_matches.pl ../phage_with_host.rc.fna RefSeq/bacteria/complete_genomes.fna > phage.15mers.bacteria.rc.txt
 perl PhageHosts/code/sort_and_join_exact_matches.pl phage.15mers.bacteria.txt > phage.kmers.bacteria.txt
+perl PhageHosts/code/sort_and_join_exact_matches.pl phage.15mers.bacteria.rc.txt >> phage.kmers.bacteria.txt
 perl PhageHosts/code/longest_exact_match.pl phage.kmers.bacteria.txt > phage_best_hits.txt 
 ```
 
