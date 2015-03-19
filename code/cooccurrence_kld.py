@@ -21,7 +21,7 @@ def calc_kld(p, b):
     assert len(p) == len(b)
     kld = 0
     for i in range(len(b)):
-        if p[i] == 0 || b[i] == 0:
+        if p[i] == 0 or b[i] == 0:
             continue
         kld += b[i] * (log(b[i]/p[i]))
     return -kld
