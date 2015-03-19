@@ -51,7 +51,7 @@ with open(inputF, 'r') as inf:
             if rank in wanted:
                 taxonomy[phage][rank]=i
             i=taxa[i].parent
-
+        
         best=0
         bestHost=None
         for h in hosts:
@@ -76,6 +76,7 @@ with open(inputF, 'r') as inf:
             for w in wanted:
                 mismatch[w] += 1
         else:
+            sys.stderr.write(phage + "\t" + bestHost + "\n")
             # after a discussion with Bas we decided to not score non-existent taxonomies
             for w in wanted:
                 if w not in taxonomy[phage] and w not in taxonomy[bestHost]:

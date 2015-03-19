@@ -258,6 +258,14 @@ python PhageHosts/code/NC2taxid.py phage.hits > phage.taxid
 python2.7 PhageHosts/code/scoreTaxId.py phage.taxid > blastn.score
 ```
 
+To make a table of all the scores between all phage genomes and all bacterial
+genomes we use 
+
+```
+python2.7 ../GitHubRepository/PhageHosts/code/blastn_all_v_all.py phage_host.blastn
+```
+
+
 #2. CRISPR spacers. CRISPR spacers
 
 Pilercr was downloaded from [drive5](http://www.drive5.com/pilercr/) and run against all complete genomes to create the database [data/pilercr1.06.output.fna](data/pilercr1.06.output.fna). 

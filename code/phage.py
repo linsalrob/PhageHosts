@@ -1,7 +1,12 @@
 '''Some common functions we need for our phage host prediction work'''
 import random
 import re
+import os
 from rob import readFasta
+
+home = os.path.expanduser("~")
+datadir = home + '/phage/host_analysis/' # set this your data dir
+
 
 class Phage:
     def __init__(self):
@@ -15,12 +20,12 @@ class Phage:
         '''Get a hash of all phages and the host that phage infects.'''
         if len(self.host) > 0:
             return self.host
-        with open('/home3/redwards/phage/host_analysis/phage_host.tsv', 'r') as phin:
+        with open(datadir + 'phage_host.tsv', 'r') as phin:
             for line in phin:
                 line = line.strip()
                 [id, gs]=line.split("\t")
                 if id in self.host:
-                    sys.stderr.write("WARNING: " + id + " was found twice in /home3/redwards/phage/host_analysis/phage_host.tsv\n")
+                    sys.stderr.write("WARNING: " + id + " was found twice in ' + datadir + 'phage_host.tsv\n")
                 self.host[id] = gs
         return self.host
 
@@ -33,9 +38,12 @@ class Phage:
         return ids
 
     def phageTaxonomyString(self):
-        '''Return a hash where the key is the phages we are interested in and the value is the taxonomy string of the host for that phage'''
+        '''
+        Return a hash where the key is the phages we are interested in
+        and the value is the taxonomy string of the host for that phage
+        '''
         phages = self.phageHost()
-        with open('/home3/redwards/phage/host_analysis/all_host_taxid_taxonomy.txt', 'r') as fin:
+        with open(datadir + 'all_host_taxid_taxonomy.txt', 'r') as fin:
             for line in fin:
                 p=line.strip().split("\t")
                 if p[0] in phages:
@@ -43,9 +51,11 @@ class Phage:
         return self.hostTaxString
 
     def phageTaxonomy(self):
-        '''Return a hash where the key is the phages we are interested in and the value is the taxonomy id of the host for that phage'''
+        '''
+        Return a hash where the key is the phages we are interested in
+        and the value is the taxonomy id of the host for that phage'''
         phages = self.phageHost()
-        with open('/home3/redwards/phage/host_analysis/all_host_taxid_taxonomy.txt', 'r') as fin:
+        with open(datadir + 'all_host_taxid_taxonomy.txt', 'r') as fin:
             for line in fin:
                 p=line.strip().split("\t")
                 if p[0] in phages:
@@ -55,7 +65,11 @@ class Phage:
 
 
     def phageWithNHosts(self, n):
-        '''Return a subset of the phages where the host that phage infects has n phages that can infect it. If a host has more than n phages, then the phages are sampled at random.'''
+        '''
+        Return a subset of the phages where the host that phage infects
+        has n phages that can infect it. If a host has more than n
+        phages, then the phages are sampled at random.
+        '''
         if len(self.host) == 0:
             self.phageHost()
 
@@ -75,7 +89,12 @@ class Phage:
         return {x:self.host[x] for x in toReturn}
         
     def completeBacteria(self, version=False):
-        '''Return a hash of all the complete bacteria that we will use in this study. The key is the ID, and the value is the name of the bacteria. If you want the version number set version to True'''
+        '''
+        Return a hash of all the complete bacteria that we will use in 
+        this study. The key is the ID, and the value is the name of 
+        the bacteria. If you want the version number set version to
+        True
+        '''
         if len(self.bacteria) > 0:
             return self.bacteria
         with open('/lustre/usr/data/NCBI/RefSeq/bacteria/complete_genome_ids.txt', 'r') as ids:
@@ -103,7 +122,7 @@ class Phage:
         ids.sort()
         return ids
 
-    def phageSequences(self, fafile='/home3/redwards/phage/host_analysis/phage_with_host.fna'):
+    def phageSequences(self, fafile=datadir + 'phage_with_host.fna'):
         '''Get the DNA sequences of the phages that we are interested in '''
         if len(self.host) == 0:
             self.phageHost()
@@ -116,7 +135,7 @@ class Phage:
             self.fasta[m[0]]=fa[i]
         return self.fasta
 
-    def phageSequenceLengths(self, fafile='/home3/redwards/phage/host_analysis/phage_with_host.fna'):
+    def phageSequenceLengths(self, fafile=datadir + 'phage_with_host.fna'):
         '''return a hash with the lengths of the sequences'''
         if len(self.fasta) == 0:
             self.phageSequences(fafile)
