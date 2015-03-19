@@ -77,7 +77,7 @@ allbact.sort()
 
 
 ## calculate pearson correlations
-with open("pearson_correlations.tsv", 'w') as out:
+with open("kld_correlations.tsv", 'w') as out:
     out.write("Phage\t" + "\t".join(allbact) + "\n")
     for ph in phage:
         out.write(ph)
