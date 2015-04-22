@@ -29,6 +29,7 @@ except:
 
 
 phage = {}
+hostsperphage = {}
 
 taxonomy = ['species', 'genus', 'family', 'order', 'class', 'phylum', 'superkingdom']
 cols = {}
@@ -44,8 +45,10 @@ with open(f, 'r') as fin:
             sys.exit("the line \n" + l + "does not have enough columns. Is this the right file?\n") 
         if p[0] not in phage:
             phage[p[0]]=set()
+            hostsperphage[p[0]]=0
         if float(p[2]) <= threshold:
             continue
+        hostsperphage[p[0]] += 1
         for c in cols:
             if int(p[c]) == 1:
                 phage[p[0]].add(cols[c])
@@ -74,4 +77,7 @@ for t in taxonomy:
         "\t" + str(c))
 
 
-
+print("\n")
+hpp = hostsperphage.values()
+nhpp = "%0.2f" % (1.0 * sum(hpp) / len(hpp))
+print("with an average of " + str(nhpp) + " hosts per phage")
