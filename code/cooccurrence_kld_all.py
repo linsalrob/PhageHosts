@@ -79,13 +79,11 @@ allbact.sort()
 
 
 ## calculate pearson correlations
-with open("kld_correlations.tsv", 'w') as out:
+with open("kld_correlations_ncnc.tsv", 'w') as out:
     out.write("Phage\t" + "\t".join(allbact) + "\n")
     for ph in phage:
-        out.write(ph)
         for ba in allbact:
             kld = calc_kld(phage[ph], bact[ba])
-            out.write("\t" + str(kld))
-        out.write("\n")
+            out.write(ph + "\t" + ba + "\t" + str(kld) + "\n")
 
         
