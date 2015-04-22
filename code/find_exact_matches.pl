@@ -4,19 +4,25 @@
 use strict;
 use Rob;
 
-my $q=shift || die "$0 <query sequence> <database sequences>";
+my $q=shift || die "$0 <query sequence> <database sequences> USE THE PHAGE FOR THIS (shorter genomes)";
 my $d=shift || die "$0 <query sequence> <database sequences>";
 
-my $kmer = 15;
+#my $kmer = 15;
+my $kmer = 11;
 
 my $rob=new Rob;
 
 my $fa = $rob->read_fasta($q);
+{
+	my $temp;
+	map {my $i = $_; $i =~ s/^.*(NC_\d+).*$/$1/; $temp->{$i}=$fa->{$_}} keys %$fa;
+	$fa = $temp;
+}
 
 my $oligo;
 foreach my $id (keys %$fa) {
 	my $co = $rob->oligos_in($fa->{$id}, $kmer);
-	map {push @{$oligo->{$_}}, $id} keys %$co;
+	map {if (index($_, "N") == -1) {push @{$oligo->{$_}}, $id}} keys %$co;
 }
 $fa={};
 
@@ -35,6 +41,7 @@ while (<IN>) {
 		if ($seq) {&printmatches($id, $seq)}
 		$seq="";
 		$id=$_;
+		$id =~ s/^.*(NC_\d+).*$/$1/;
 	} else {
 		$seq .= uc($_);
 	}
@@ -48,6 +55,7 @@ sub printmatches {
 	my $posn=0;
 	while ($posn + $kmer < length($seq)) {
 		my $ss=substr($seq, $posn, $kmer);
+		next if (index($ss, "N") > -1);
 		if ($oligo->{$ss}) {
 			map {print join("\t", $_, $id, $posn, $ss), "\n"} @{$oligo->{$ss}}
 		}
