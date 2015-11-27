@@ -12,6 +12,7 @@ bactids=[]
 data=[]
 with open(bacteriaF, 'r') as bin:
     l=bin.readline()
+    l=l.replace('ID.genome', 'ID')
     bactheaders = l.strip().split("\t")
     for l in bin:
         p=l.strip().split("\t")
