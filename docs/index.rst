@@ -329,9 +329,7 @@ We then figure out the best hit for each phage, and score those hits.
         python PhageHosts/code/NC2taxid.py phage.hits > phage.taxid
         python2.7 PhageHosts/code/scoreTaxId.py phage.taxid > blastn.score
 
-| To make a table of all the scores between all phage genomes and all
-bacterial
-| genomes we use
+To make a table of all the scores between all phage genomes and all bacterial genomes we use
 
 ::
 
@@ -663,7 +661,7 @@ product distribution."
    
 
 You can also find what you are looking for directly:
-++++++++++++++++++++++++++++++++++++++++++++++++++++
+====================================================
 
 * :ref:`genindex`
 * :ref:`modindex`
