@@ -26,7 +26,8 @@ not uploaded all genome sequences: you can get those from
 Code
 ====
 
-You can download all the code from our `GitHub Repository <https://github.com/linsalrob/PhageHosts>`__.
+You can download all the code from our 
+`GitHub Repository <https://github.com/linsalrob/PhageHosts>`__.
 
 Datasets
 ========
