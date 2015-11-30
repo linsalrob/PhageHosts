@@ -8,7 +8,8 @@ approaches to predict bacteriophage–host relationships. FEMS
 Microbiology Reviews `doi:
 10.1093/femsre/fuv048 <http://dx.doi.org/10.1093/femsre/fuv048>`__\ ∗
 
-Almost all of the code is written in python and should work with version
+Almost all of the `code <https://github.com/linsalrob/PhageHosts>`__
+is written in python and should work with version
 2.7. Some parts of the code require matplotlib, numpy, and/or scipy.
 Some parts of the code were written in Perl 5 and should run with the
 standard Perl libraries. The code was written on CentOS 6 machines and
@@ -17,9 +18,15 @@ Linux, MacOSX, or Windows. Parts of the code include reference to
 running things on our cluster where we use SGE as the job scheduler. You
 can run those parts without the cluster, but it will probably be slower!
 
-The data/ directory includes some of the data sets that we used. We have
+The `data/ <https://github.com/linsalrob/PhageHosts/tree/master/data>`__ 
+directory includes some of the data sets that we used. We have
 not uploaded all genome sequences: you can get those from
 `RefSeq <http://www.ncbi.nlm.nih.gov/refseq/>`__.
+
+Code
+====
+
+You can download all the code from our `GitHub Repository <<https://github.com/linsalrob/PhageHosts>`__.
 
 Datasets
 ========
