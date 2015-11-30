@@ -198,7 +198,7 @@ pseudoxml:
 gh-pages:
 	git checkout gh-pages
 	rm -rf build sources static _sources _static
-	git checkout working $(GH_PAGES_SOURCES)
+	git checkout master $(GH_PAGES_SOURCES)
 	git reset HEAD
 	make clean
 	make DOCSDIR=docs html
@@ -210,4 +210,4 @@ gh-pages:
 	perl -i -npe 's/_static/static/g' `grep -rl _static *`
 	rm -rf $(GH_PAGES_SOURCES) build
 	git add -A
-	git commit -m "Generated gh-pages for `git log working -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout working 
+	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout master
