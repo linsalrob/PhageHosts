@@ -49,7 +49,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'PhageHosts'
+project = u'Phage Host Analysis'
 copyright = u'2015, Robert Edwards and Bas Dutilh'
 author = u'Robert Edwards and Bas Dutilh'
 
