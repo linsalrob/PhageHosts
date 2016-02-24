@@ -60,3 +60,7 @@ target/
 .*.swp
 .*.swo
 
+# pycharm
+.idea
+
+.dribble*
