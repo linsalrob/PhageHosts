@@ -6,6 +6,9 @@ Almost all of the code is written in python and should work with version 2.7. So
 
 The data/ directory includes some of the data sets that we used. We have not uploaded all genome sequences: you can get those from [RefSeq](http://www.ncbi.nlm.nih.gov/refseq/).
 
+# Websites
+
+See also [http://edwards.sdsu.edu/PhageHosts/](Edwards lab website)
 
 # Datasets
 
