@@ -18,6 +18,8 @@ The phage genomes were downloaded from RefSeq and parsed to get the information 
 
 For example, to convert from GBFF to FNA format for all of the open reading frames:
 
+Download viral RefSeq data in [GenBank Flat File](ftp://ftp.ncbi.nlm.nih.gov/refseq/release/viral/viral.1.genomic.gbff.gz) and [Nucleotide Fasta](ftp://ftp.ncbi.nlm.nih.gov/refseq/release/viral/viral.1.1.genomic.fna.gz). Extract both those files. Then run this command:
+
 ```
     python PhageHosts/code/combine_gbff_fna.py viral.1.genomic.gbff viral.1.1.genomic.fna > viral.1.cds.fna
 ```
