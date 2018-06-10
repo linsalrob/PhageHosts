@@ -88,7 +88,8 @@ for line in gbfin:
 
 fa = rob.readFasta(fnaf)
 
-ncre = re.compile('.*ref\|(\w+)')
+#ncre = re.compile('.*ref\|(\w+)')
+ncre = re.compile('(NC_\d+)')
 for id in fa:
     m = ncre.match(id)
     if not m:
