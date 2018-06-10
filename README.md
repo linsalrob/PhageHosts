@@ -1,6 +1,6 @@
-#PhageHosts
+# PhageHosts
 
-The code used for identification of the hosts of different phages. This is the complete code base used in *Robert A. Edwards, Katelyn McNair, Karoline Faust, Jeroen Raes, and Bas E. Dutilh (2015) Computational approaches to predict bacteriophage–host relationships. FEMS Microbiology Reviews [doi: 10.1093/femsre/fuv048](http://dx.doi.org/10.1093/femsre/fuv048)∗ 
+The code used for identification of the hosts of different phages. This is the complete code base used in * Robert A. Edwards, Katelyn McNair, Karoline Faust, Jeroen Raes, and Bas E. Dutilh (2015) Computational approaches to predict bacteriophage–host relationships. FEMS Microbiology Reviews [doi: 10.1093/femsre/fuv048](http://dx.doi.org/10.1093/femsre/fuv048) ∗ 
 
 Almost all of the code is written in python and should work with version 2.7. Some parts of the code require matplotlib, numpy, and/or scipy. Some parts of the code were written in Perl 5 and should run with the standard Perl libraries. The code was written on CentOS 6 machines and should run *out of the box* on those machines, but it will also run on Linux, MacOSX, or Windows. Parts of the code include reference to running things on our cluster where we use SGE as the job scheduler. You can run those parts without the cluster, but it will probably be slower!
 
