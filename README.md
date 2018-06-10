@@ -8,7 +8,7 @@ The data/ directory includes some of the data sets that we used. We have not upl
 
 # Websites
 
-See also [http://edwards.sdsu.edu/PhageHosts/](Edwards lab website)
+See also [Edwards Lab Website](http://edwards.sdsu.edu/PhageHosts/)
 
 # Datasets
 
