@@ -8,7 +8,7 @@ The data/ directory includes some of the data sets that we used. We have not upl
 
 # Websites
 
-See also [Edwards Lab Website](http://edwards.sdsu.edu/PhageHosts/)
+See also [the GitHub.io page](http://linsalrob.github.io/PhageHosts//) and the [Edwards lab](https://edwards.flinders.edu.au)
 
 # Datasets
 
